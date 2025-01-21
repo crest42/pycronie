@@ -166,7 +166,6 @@ class CronJob:
     def _update_month(self, next_run: datetime) -> datetime:
         if next_run.month in self.month:
             return next_run
-        updated = False
         for elem in self.month:
             if elem >= next_run.month:
                 minutes = (
@@ -174,21 +173,39 @@ class CronJob:
                     - date(next_run.year, next_run.month, next_run.day)
                 ).days * MINUTES_PER_DAY
                 minutes -= self._adjust_days(next_run)
-                next_run = next_run + timedelta(minutes=minutes)
-                updated = True
-                break
-        if not updated:
-            next_month = self.month[0]
-            minutes = (
-                date(next_run.year + 1, next_month, next_run.day)
-                - date(next_run.year, next_run.month, next_run.day)
-            ).days * MINUTES_PER_DAY
-            minutes -= self._adjust_days(next_run)
-            next_run = next_run + timedelta(minutes=minutes)
-        return next_run
+                return next_run + timedelta(minutes=minutes)
+        next_month = self.month[0]
+        minutes = (
+            date(next_run.year + 1, next_month, next_run.day)
+            - date(next_run.year, next_run.month, next_run.day)
+        ).days * MINUTES_PER_DAY
+        minutes -= self._adjust_days(next_run)
+        return next_run + timedelta(minutes=minutes)
+
+    def _update_weekday(self, next_run: datetime) -> datetime:
+        weekday = next_run.isoweekday() if next_run.isoweekday() < 7 else 0
+        if weekday in self.weekday:
+            return next_run
+
+        for elem in self.weekday:
+            if elem > weekday:
+                day = next_run.day + (elem-weekday)
+                minutes = (
+                    date(next_run.year, next_run.month, day)
+                    - date(next_run.year, next_run.month, next_run.day)
+                ).days * MINUTES_PER_DAY
+                minutes -= self._adjust_hours(next_run)
+                return next_run + timedelta(minutes=minutes)
+        first_weekday = self.weekday[0]
+        day = next_run.day + ((7-weekday)+first_weekday)
+        minutes = (
+            date(next_run.year, next_run.month, day)
+            - date(next_run.year, next_run.month, next_run.day)
+        ).days * MINUTES_PER_DAY
+        minutes -= self._adjust_hours(next_run)
+        return next_run + timedelta(minutes=minutes)
 
     def _update_day(self, next_run: datetime) -> datetime:
-        updated = False
         if next_run.day in self.day:
             return next_run
         for elem in self.day:
@@ -198,37 +215,28 @@ class CronJob:
                     - date(next_run.year, next_run.month, next_run.day)
                 ).days * MINUTES_PER_DAY
                 minutes -= self._adjust_hours(next_run)
-                next_run = next_run + timedelta(minutes=minutes)
-                updated = True
-                break
-        if not updated:
-            next_day = self.day[0]
-            minutes = (
-                date(next_run.year, next_run.month + 1, next_day)
-                - date(next_run.year, next_run.month, next_run.day)
-            ).days * MINUTES_PER_DAY
+                return next_run + timedelta(minutes=minutes)
+        next_day = self.day[0]
+        minutes = (
+            date(next_run.year, next_run.month + 1, next_day)
+            - date(next_run.year, next_run.month, next_run.day)
+        ).days * MINUTES_PER_DAY
 
-            minutes -= self._adjust_hours(next_run)
-            next_run = next_run + timedelta(minutes=minutes)
-        return next_run
+        minutes -= self._adjust_hours(next_run)
+        return next_run + timedelta(minutes=minutes)
 
     def _update_hour(self, next_run: datetime) -> datetime:
         if next_run.hour in self.hour:
             return next_run
-        updated = False
         for elem in self.hour:
             if elem > next_run.hour:
                 minutes = (elem - next_run.hour) * MINUTES_PER_HOUR
                 minutes -= self._adjust_minutes(next_run)
-                next_run = next_run + timedelta(minutes=minutes)
-                updated = True
-                break
-        if not updated:
-            next_hour = self.hour[0]
-            minutes = (HOURS_PER_DAY - (next_run.hour - next_hour)) * MINUTES_PER_HOUR
-            minutes -= self._adjust_minutes(next_run)
-            next_run = next_run + timedelta(minutes=minutes)
-        return next_run
+                return next_run + timedelta(minutes=minutes)
+        next_hour = self.hour[0]
+        minutes = (HOURS_PER_DAY - (next_run.hour - next_hour)) * MINUTES_PER_HOUR
+        minutes -= self._adjust_minutes(next_run)
+        return next_run + timedelta(minutes=minutes)
 
     def _update_minute(self, next_run: datetime) -> datetime:
         for elem in self.minute:
@@ -251,10 +259,24 @@ class CronJob:
         return next_run
 
     def _update_date(self, next_run: datetime) -> datetime:
+
+        log.debug(f"update weekday on {next_run}")
+        weekday = self._update_weekday(next_run)
         log.debug(f"update day on {next_run}")
-        next_run = self._update_day(next_run)
+        day = self._update_day(next_run)
+        log.debug(f"Use min({weekday},{day})")
+
+        if len(self.day) == 31 and len(self.weekday) < 7:
+            next_run = weekday
+        elif len(self.day) < 31 and len(self.weekday) < 7:
+            next_run = min(day, weekday)
+        else:
+            next_run = day
+
         log.debug(f"update month on {next_run}")
         next_run = self._update_month(next_run)
+
+
         return next_run
 
     def _update(self, current_time: datetime) -> None:
@@ -494,6 +516,23 @@ if __name__ == "__main__":
         "* * * 12 *": datetime(
             year=2024, month=12, day=1, hour=0, minute=0, second=0
         ),  #  After Current Day
+
+        "* * * * 6": datetime(
+            year=2024, month=6, day=15, hour=12, minute=14, second=0
+        ),  #  Every Monday
+        "* * * * 1": datetime(
+            year=2024, month=6, day=17, hour=0, minute=0, second=0
+        ),  #  Every Monday
+
+        "* * 16 * 1": datetime(
+            year=2024, month=6, day=16, hour=0, minute=0, second=0
+        ),  #  Every Monday or the 16th
+
+        "* * 18 * 1": datetime(
+            year=2024, month=6, day=17, hour=0, minute=0, second=0
+        ),  #  Every Monday or the 1th
+
+
         "42 23 24 12 *": datetime(
             year=2024, month=12, day=24, hour=23, minute=42, second=0
         ),
@@ -521,16 +560,16 @@ if __name__ == "__main__":
         "0 12 15 * *": datetime(2024, 7, 15, 12, 0, 0),
         "30 8 15 6 *": datetime(2025, 6, 15, 8, 30, 0),
         "0 0 * * 0": datetime(2024, 6, 16, 0, 0, 0),
-        #    "0 0 * * 1": datetime(2024, 6, 17, 0, 0, 0), TODO Weekdays
+        "0 0 * * 1": datetime(2024, 6, 17, 0, 0, 0),
         #    "0 0 29 2 *": datetime(2028, 2, 29, 0, 0, 0), TODO NO LEAP YEAR DETECTION
         "*/15 * * * *": datetime(2024, 6, 15, 12, 15, 0),
         "5-10 * * * *": datetime(2024, 6, 15, 13, 5, 0),
-        #   "0 9-17 * * 1-5": datetime(2024, 6, 17, 9, 0, 0), TODO Weekdays
+        "0 9-17 * * 1-5": datetime(2024, 6, 17, 9, 0, 0),
         "0 0 1 1 *": datetime(2025, 1, 1, 0, 0, 0),
-        #   "*/5 12 * * 3": datetime(2024, 6, 19, 12, 15, 0), Todo Weekdays
-        #   "0 0 15 6 6": datetime(2024, 6, 15, 0, 0, 0), # Todo Weekdays
-        #   "0 10 1-7 * 1": datetime(2024, 7, 1, 10, 0, 0), # Todo Weekdays
-        #   "*/10 14 * * 2": datetime(2024, 6, 18, 14, 10, 0),Todo Weekdays
+        "*/5 12 * * 3": datetime(2024, 6, 19, 12, 0, 0),
+        "0 0 15 6 6": datetime(2024, 6, 22, 0, 0, 0),
+        "0 10 1-7 * 1": datetime(2024, 6, 17, 10, 0, 0),
+        "*/10 14 * * 2": datetime(2024, 6, 18, 14, 0, 0),
     }
     for fmt, expected in test_strings.items():
         cron_ = CronJob(cron(fmt)(_id), fmt).next
