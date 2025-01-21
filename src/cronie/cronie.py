@@ -175,10 +175,16 @@ class CronJob:
                 minutes -= self._adjust_days(next_run)
                 return next_run + timedelta(minutes=minutes)
         next_month = self.month[0]
-        minutes = (
-            date(next_run.year + 1, next_month, next_run.day)
-            - date(next_run.year, next_run.month, next_run.day)
-        ).days * MINUTES_PER_DAY
+        minutes = 0
+        for i in range(4):
+            try:
+                minutes = (
+                    date(next_run.year + i+1, next_month, next_run.day)
+                    - date(next_run.year, next_run.month, next_run.day)
+                ).days * MINUTES_PER_DAY
+                break
+            except ValueError:
+                pass
         minutes -= self._adjust_days(next_run)
         return next_run + timedelta(minutes=minutes)
 
@@ -561,7 +567,7 @@ if __name__ == "__main__":
         "30 8 15 6 *": datetime(2025, 6, 15, 8, 30, 0),
         "0 0 * * 0": datetime(2024, 6, 16, 0, 0, 0),
         "0 0 * * 1": datetime(2024, 6, 17, 0, 0, 0),
-        #    "0 0 29 2 *": datetime(2028, 2, 29, 0, 0, 0), TODO NO LEAP YEAR DETECTION
+        "0 0 29 2 *": datetime(2028, 2, 29, 0, 0, 0),
         "*/15 * * * *": datetime(2024, 6, 15, 12, 15, 0),
         "5-10 * * * *": datetime(2024, 6, 15, 13, 5, 0),
         "0 9-17 * * 1-5": datetime(2024, 6, 17, 9, 0, 0),
