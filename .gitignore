@@ -1,0 +1,6 @@
+signal-cli-config/
+.env
+a.out
+__pycache__/
+*.code-workspace
+.local
