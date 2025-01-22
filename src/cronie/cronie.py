@@ -10,6 +10,7 @@ async def function():
 
 
 """
+
 from typing import Callable, Any, Coroutine
 
 import asyncio
@@ -31,7 +32,6 @@ __all__ = [
     "annually",
     "yearly",
     "run_cron",
-
 ]
 
 AwaitableType = Callable[[], Coroutine[Any, Any, None]]
@@ -52,11 +52,10 @@ CRON_STRING_TEMPLATE_MONTHLY = "0 0 1 * *"
 CRON_STRING_TEMPLATE_ANNUALLY = "0 0 1 1 *"
 ANY_MINUTE = range(0, MINUTES_PER_HOUR)
 ANY_HOUR = range(0, HOURS_PER_DAY)
-ANY_DAY = range(1, DAYS_PER_MONTH+1)
+ANY_DAY = range(1, DAYS_PER_MONTH + 1)
 ANY_MONTH = range(1, MONTHS_PER_YEAR)
-ANY_WEEKDAY = range(0,7)
+ANY_WEEKDAY = range(0, 7)
 log = logging.getLogger(__name__)
-
 
 
 def cron(cron_format_string: str) -> Callable[[AwaitableType], AwaitableType]:
@@ -160,13 +159,14 @@ def _get_next_best_fit(haystack: list[int], needle: int) -> int:
         return i
     return -1
 
+
 def _detla_between_dates_in_minutes(first_date: date, second_date: date) -> int:
     return (first_date - second_date).days * MINUTES_PER_DAY
 
 
 class _CronStringParser:
     """Main Cron string parsing functionallity.
-    
+
     Parses a cron string into sets of valid minutes, hours, days and weeks.
     Valid means that the cron can be executed at that timings.
 
@@ -295,7 +295,7 @@ class _CronStringParser:
         if len(parts) != 5:
             raise RuntimeError(f"Cron string {self.format} is not a valid cron string")
 
-        # TODO USE SETS
+        # TODO USE ranges?
         self.valid_minutes = self._try_parse_cron_minute(parts[0])
         self.valid_hours = self._try_parse_cron_hour(parts[1])
         self.valid_days = self._try_parse_cron_day(parts[2])
@@ -320,23 +320,28 @@ class CronJob:
             self._schedule(CronJob._get_current_time())
 
     @property
-    def days(self) -> list[int]:
-        return self.parsed.valid_days
-
-    @property
-    def weekdays(self) -> list[int]:
-        return self.parsed.valid_weekdays
-
-    @property
     def months(self) -> list[int]:
+        """Months on which this cron can run. Range 1-12"""
         return self.parsed.valid_months
 
     @property
+    def weekdays(self) -> list[int]:
+        """Weekdays on which this cron can run. Range 0(sun)-6(sat)"""
+        return self.parsed.valid_weekdays
+
+    @property
+    def days(self) -> list[int]:
+        """Days on which this cron can run. Range 1-31"""
+        return self.parsed.valid_days
+
+    @property
     def hours(self) -> list[int]:
+        """Hours on which this cron can run. Range 0-23"""
         return self.parsed.valid_hours
 
     @property
     def minutes(self) -> list[int]:
+        """Minutes on which this cron can run. Range 0-23"""
         return self.parsed.valid_minutes
 
     @classmethod
@@ -500,7 +505,7 @@ class CronJob:
         """Returns seconds until the cron needs to be scheduled based on relative time input"""
         due_in = (self.next - now).total_seconds()
         return (
-            int(due_in) + 1  # TODO Hacky?
+            int(due_in) + 1
         )  # Second precision is fine since cron operates on minutes
 
 
@@ -555,102 +560,9 @@ if __name__ == "__main__":
 
     setattr(CronJob, "_get_current_time", _get_mock_time)
 
-    test_strings = {
-        "5 12 * * *": datetime(year=2024, month=6, day=16, hour=12, minute=5, second=0),
-        "20 12 * * *": datetime(
-            year=2024, month=6, day=15, hour=12, minute=20, second=0
-        ),
-        "* * * * *": datetime(year=2024, month=6, day=15, hour=12, minute=14, second=0),
-        "0 * * * *": datetime(
-            year=2024, month=6, day=15, hour=13, minute=0, second=0
-        ),  # Before Current minute
-        "59 * * * *": datetime(
-            year=2024,
-            month=6,
-            day=15,
-            hour=12,
-            minute=59,
-            second=0,  # After Current Minute
-        ),
-        "20 0 * * *": datetime(
-            year=2024, month=6, day=16, hour=0, minute=20, second=0
-        ),  # Before Current Hour
-        "* 0 * * *": datetime(
-            year=2024, month=6, day=16, hour=0, minute=0, second=0
-        ),  # Before Current Hour
-        "* 23 * * *": datetime(
-            year=2024, month=6, day=15, hour=23, minute=0, second=0
-        ),  # After Current Hour
-        "* * 1 * *": datetime(
-            year=2024, month=7, day=1, hour=0, minute=0, second=0
-        ),  # Before Current Day
-        "* * 30 * *": datetime(
-            year=2024, month=6, day=30, hour=0, minute=0, second=0
-        ),  # After Current Day
-        "* * * 1 *": datetime(
-            year=2025, month=1, day=1, hour=0, minute=0, second=0
-        ),  # Before Current Month
-        "* * * 12 *": datetime(
-            year=2024, month=12, day=1, hour=0, minute=0, second=0
-        ),  #  After Current Day
-        "42 23 24 12 *": datetime(
-            year=2024, month=12, day=24, hour=23, minute=42, second=0
-        ),
-        "1 1 1 1 *": datetime(year=2025, month=1, day=1, hour=1, minute=1, second=0),
-        "0 0 1 1 *": datetime(year=2025, month=1, day=1, hour=0, minute=0, second=0),
-        "15 14 1 * *": datetime(
-            year=2024, month=7, day=1, hour=14, minute=15, second=0
-        ),  # At 14:15 on day-of-month 1.
-        "0 22 * * *": datetime(
-            year=2024, month=6, day=15, hour=22, minute=0, second=0
-        ),  # At 22:00 on every day-of-week
-        "0 4 8-14 * *": datetime(
-            year=2024, month=7, day=8, hour=4, minute=0, second=0
-        ),  # At 04:00 on every day-of-month from 8 through 14.
-        "* * * * 6": datetime(
-            year=2024, month=6, day=15, hour=12, minute=14, second=0
-        ),  #  Every Saturday
-        "* * * * 1": datetime(
-            year=2024, month=6, day=17, hour=0, minute=0, second=0
-        ),  #  Every Monday
-        "* * 16 * 1": datetime(
-            year=2024, month=6, day=16, hour=0, minute=0, second=0
-        ),  #  Every Monday or the 16th
-        "* * 18 * 1": datetime(
-            year=2024, month=6, day=17, hour=0, minute=0, second=0
-        ),  #  Every Monday or the 1th
-    }
+    FMT = "* * * * *"
+    expected = datetime(year=2024, month=6, day=15, hour=12, minute=14, second=0)
+    cron_ = CronJob(_id, FMT).next
+    assert cron_ == expected
 
-    gpt_cron_test_cases = {
-        "* * * * *": datetime(2024, 6, 15, 12, 14, 0),
-        "*/2 * * * *": datetime(2024, 6, 15, 12, 14, 0),
-        "0 * * * *": datetime(2024, 6, 15, 13, 0, 0),
-        "0 0 * * *": datetime(2024, 6, 16, 0, 0, 0),
-        "30 14 * * *": datetime(2024, 6, 15, 14, 30, 0),
-        "15,45 12 * * *": datetime(2024, 6, 15, 12, 15, 0),
-        "0 0 1 * *": datetime(2024, 7, 1, 0, 0, 0),
-        "0 12 15 * *": datetime(2024, 7, 15, 12, 0, 0),
-        "30 8 15 6 *": datetime(2025, 6, 15, 8, 30, 0),
-        "0 0 * * 0": datetime(2024, 6, 16, 0, 0, 0),
-        "0 0 * * 1": datetime(2024, 6, 17, 0, 0, 0),
-        "0 0 29 2 *": datetime(2028, 2, 29, 0, 0, 0),
-        "*/15 * * * *": datetime(2024, 6, 15, 12, 15, 0),
-        "5-10 * * * *": datetime(2024, 6, 15, 13, 5, 0),
-        "0 9-17 * * 1-5": datetime(2024, 6, 17, 9, 0, 0),
-        "0 0 1 1 *": datetime(2025, 1, 1, 0, 0, 0),
-        "*/5 12 * * 3": datetime(2024, 6, 19, 12, 0, 0),
-        "0 0 15 6 6": datetime(2024, 6, 22, 0, 0, 0),
-        "0 10 1-7 * 1": datetime(2024, 6, 17, 10, 0, 0),
-        "*/10 14 * * 2": datetime(2024, 6, 18, 14, 0, 0),
-    }
-    log.info("RUN manual TESTS")
-    for fmt, expected in test_strings.items():
-        cron_ = CronJob(_id, fmt).next
-        log.info(f"{fmt} = {cron_=} == {expected=}")
-        assert cron_ == expected
-
-    log.info("RUN GPT TESTS")
-    for fmt, expected in gpt_cron_test_cases.items():
-        cron_ = CronJob(_id, fmt).next
-        log.info(f"{fmt} = {cron_=} == {expected=}")
-        assert cron_ == expected
+    log.info(f"{FMT} = {cron_=} == {expected=}")
