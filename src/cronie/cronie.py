@@ -32,6 +32,7 @@ __all__ = [
     "annually",
     "yearly",
     "run_cron",
+    "CronJobInvalid",
 ]
 
 AwaitableType = Callable[[], Coroutine[Any, Any, None]]
@@ -56,6 +57,7 @@ ANY_DAY = range(1, DAYS_PER_MONTH + 1)
 ANY_MONTH = range(1, MONTHS_PER_YEAR)
 ANY_WEEKDAY = range(0, 7)
 log = logging.getLogger(__name__)
+WEEKDAY_MAP = {"sun": 0, "mon": 1, "tue": 2, "wed": 3, "thu": 4, "fri": 5, "sat": 6}
 
 
 def cron(cron_format_string: str) -> Callable[[AwaitableType], AwaitableType]:
@@ -68,16 +70,26 @@ def cron(cron_format_string: str) -> Callable[[AwaitableType], AwaitableType]:
         pass
     """
 
-    def decorator(f: AwaitableType) -> AwaitableType:
-        cron_list.append(CronJob(f, cron_format_string))
-        return f
+    def decorator(func: AwaitableType) -> AwaitableType:
+        try:
+            cron_job = CronJob(func, cron_format_string)
+            cron_list.append(cron_job)
+        except CronJobInvalid:
+            log.error(
+                f"Could not setup cronjob for {func.__name__} on schedule '{cron_format_string}'"
+            )
+        return func
 
     return decorator
 
 
 def reboot(func: AwaitableType) -> AwaitableType:
     """Runs once on startup"""
-    cron_startup_list.append(CronJob(func, "STARTUP"))
+    try:
+        cron_job = CronJob(func, "STARTUP")
+        cron_startup_list.append(cron_job)
+    except CronJobInvalid:
+        log.error(f"Could not setup cronjob for {func.__name__} on '@startup' schedule")
     return func
 
 
@@ -88,7 +100,13 @@ def startup(func: AwaitableType) -> AwaitableType:
 
 def shutdown(func: AwaitableType) -> AwaitableType:
     """Runs once on shutdown"""
-    cron_shutdown_list.append(CronJob(func, "SHUTDOWN"))
+    try:
+        cron_job = CronJob(func, "SHUTDOWN")
+        cron_shutdown_list.append(cron_job)
+    except CronJobInvalid:
+        log.error(
+            f"Could not setup cronjob for {func.__name__} on '@shutdown' schedule"
+        )
     return func
 
 
@@ -132,6 +150,13 @@ def yearly(func: AwaitableType) -> AwaitableType:
     return cron(CRON_STRING_TEMPLATE_ANNUALLY)(func)
 
 
+def _cast_cron_int(maybe_int: str) -> int:
+    try:
+        return int(maybe_int)
+    except ValueError as ex:
+        raise InvalidCronStringException() from ex
+
+
 def _is_leap_year(year: int) -> int:
     return (year % 4 == 0) and (year % 100 != 0 or year % 400 == 0)
 
@@ -140,7 +165,7 @@ def _get_next_leap_year(year: int) -> int:
     for i in range(year, year + 4):
         if _is_leap_year(i):
             return i
-    raise TypeError(f"Could not find the next leap year for {year}")
+    raise ValueError(f"Could not find the next leap year for {year}")
 
 
 def _is_leap_year_exclusive(month: int, day: int) -> bool:
@@ -164,6 +189,22 @@ def _detla_between_dates_in_minutes(first_date: date, second_date: date) -> int:
     return (first_date - second_date).days * MINUTES_PER_DAY
 
 
+def _cast_cron_weekday(maybe_weekday: str) -> int:
+    try:
+        return int(maybe_weekday)
+    except ValueError as e:
+        try:
+            return int(WEEKDAY_MAP[maybe_weekday])
+        except KeyError:
+            raise InvalidCronStringException(
+                "Not a valid cron weekday number or string"
+            ) from e
+
+
+class InvalidCronStringException(Exception):
+    """General Exception raised when cron string could not be parsed"""
+
+
 class _CronStringParser:
     """Main Cron string parsing functionallity.
 
@@ -176,47 +217,64 @@ class _CronStringParser:
     def __init__(self, cron_format_string: str) -> None:
         self.format = cron_format_string
         if cron_format_string not in ["STARTUP", "SHUTDOWN"]:
-            self._parse_format()
+            try:
+                self._parse_format()
+            except InvalidCronStringException as ex:
+                log.error(
+                    f"Invalid cron string '{cron_format_string}'. Exception while parsing"
+                )
+                raise ex
+        self.valid = True
 
     def _validate_minute(self) -> None:
         if isinstance(self.valid_minutes, list):
             for elem in self.valid_minutes:
                 if elem < 0 or elem > 59:
-                    raise TypeError(f"Invalid cron minute {self.valid_minutes}")
+                    raise InvalidCronStringException(
+                        f"Invalid cron minute {self.valid_minutes}"
+                    )
                 return
-        raise TypeError(f"Invalid cron minute {self.valid_minutes}")
+        raise InvalidCronStringException(f"Invalid cron minute {self.valid_minutes}")
 
     def _validate_hour(self) -> None:
         if isinstance(self.valid_hours, list):
             for elem in self.valid_hours:
                 if elem < 0 or elem > 23:
-                    raise TypeError(f"Invalid cron hour {self.valid_hours}")
+                    raise InvalidCronStringException(
+                        f"Invalid cron hour {self.valid_hours}"
+                    )
                 return
-        raise TypeError(f"Invalid cron hour {self.valid_hours}")
+        raise InvalidCronStringException(f"Invalid cron hour {self.valid_hours}")
 
     def _validate_day(self) -> None:
         if isinstance(self.valid_days, list):
             for elem in self.valid_days:
                 if elem < 1 or elem > 31:
-                    raise TypeError(f"Invalid cron day {self.valid_days}")
+                    raise InvalidCronStringException(
+                        f"Invalid cron day {self.valid_days}"
+                    )
                 return
-        raise TypeError(f"Invalid cron day {self.valid_days}")
+        raise InvalidCronStringException(f"Invalid cron day {self.valid_days}")
 
     def _validate_month(self) -> None:
         if isinstance(self.valid_months, list):
             for elem in self.valid_months:
                 if elem < 1 or elem > 12:
-                    raise TypeError(f"Invalid cron month {self.valid_months}")
+                    raise InvalidCronStringException(
+                        f"Invalid cron month {self.valid_months}"
+                    )
                 return
-        raise TypeError(f"Invalid cron month {self.valid_months}")
+        raise InvalidCronStringException(f"Invalid cron month {self.valid_months}")
 
     def _validate_weekday(self) -> None:
         if isinstance(self.valid_weekdays, list):
             for elem in self.valid_weekdays:
                 if elem < 0 or elem > 6:
-                    raise TypeError(f"Invalid cron weekday {self.valid_weekdays}")
+                    raise InvalidCronStringException(
+                        f"Invalid cron weekday {self.valid_weekdays}"
+                    )
                 return
-        raise TypeError(f"Invalid cron weekday {self.valid_weekdays}")
+        raise InvalidCronStringException(f"Invalid cron weekday {self.valid_weekdays}")
 
     def _validate(self) -> None:
         self._validate_minute()
@@ -225,7 +283,12 @@ class _CronStringParser:
         self._validate_month()
         self._validate_weekday()
 
-    def _try_parse_cron(self, cron_format_string: str) -> list[int]:
+    def _try_parse_cron(
+        self,
+        cron_format_string: str,
+        end: int,
+        cast_function: Callable[[str], int] = _cast_cron_int,
+    ) -> list[int]:
         assert isinstance(cron_format_string, str)
         values = []
         parts = cron_format_string.split(",")
@@ -235,11 +298,14 @@ class _CronStringParser:
                 step_size = int(part.split("/")[1])
                 part = part[0 : part.index("/")]
             if "-" in part:
-                start = int(part.split("-")[0])
-                end = int(part.split("-")[1])
+                start = cast_function(part.split("-")[0])
+                end = cast_function(part.split("-")[1])
                 values.extend(list(range(start, end + 1, step_size)))
             else:
-                values.append(int(part))
+                start = cast_function(part)
+                values.extend(
+                    list(range(start, end if step_size > 1 else start + 1, step_size))
+                )
         return values
 
     def _try_parse_cron_minute(self, cron_minute: str) -> list[int]:
@@ -248,7 +314,7 @@ class _CronStringParser:
                 step_size = int(cron_minute.split("/")[1])
                 return list(range(ANY_MINUTE.start, ANY_MINUTE.stop, step_size))
             return list(ANY_MINUTE)
-        return self._try_parse_cron(cron_minute)
+        return self._try_parse_cron(cron_minute, ANY_MINUTE.stop)
 
     def _try_parse_cron_hour(self, cron_hour: str) -> list[int]:
         if cron_hour.startswith("*"):
@@ -256,7 +322,7 @@ class _CronStringParser:
                 step_size = int(cron_hour.split("/")[1])
                 return list(range(ANY_HOUR.start, ANY_HOUR.stop, step_size))
             return list(ANY_HOUR)
-        return self._try_parse_cron(cron_hour)
+        return self._try_parse_cron(cron_hour, ANY_HOUR.stop)
 
     def _try_parse_cron_day(self, cron_day: str) -> list[int]:
         if cron_day.startswith("*"):
@@ -264,7 +330,7 @@ class _CronStringParser:
                 step_size = int(cron_day.split("/")[1])
                 return list(range(ANY_DAY.start, ANY_DAY.stop, step_size))
             return list(ANY_DAY)
-        return self._try_parse_cron(cron_day)
+        return self._try_parse_cron(cron_day, ANY_DAY.stop)
 
     def _try_parse_cron_month(self, cron_month: str) -> list[int]:
         if cron_month.startswith("*"):
@@ -272,7 +338,7 @@ class _CronStringParser:
                 step_size = int(cron_month.split("/")[1])
                 return list(range(ANY_MONTH.start, ANY_MONTH.stop, step_size))
             return list(ANY_MONTH)
-        return self._try_parse_cron(cron_month)
+        return self._try_parse_cron(cron_month, ANY_MONTH.stop)
 
     def _try_parse_cron_weekday(self, cron_weekday: str) -> list[int]:
         cron_weekday = cron_weekday.replace("sun", str(0))
@@ -284,7 +350,9 @@ class _CronStringParser:
         cron_weekday = cron_weekday.replace("sat", str(6))
         if cron_weekday.startswith("*") and not "/" in cron_weekday:
             return list(ANY_WEEKDAY)
-        weekdays = self._try_parse_cron(cron_weekday)
+        weekdays = self._try_parse_cron(
+            cron_weekday, ANY_WEEKDAY.stop, cast_function=_cast_cron_weekday
+        )
         for i, elem in enumerate(weekdays):
             if elem == 7:
                 weekdays[i] = 0
@@ -304,10 +372,12 @@ class _CronStringParser:
         self._validate()
 
 
+class CronJobInvalid(Exception):
+    """General Exception raised when cron job could not be created e. g. due to a invalid string"""
+
+
 class CronJob:
     """Main Wrapper for a single Cronjob. Includes the target function, cron string parsing, and timing information."""
-
-    weekday_map = {"sun": 0, "mon": 1, "tue": 2, "wed": 3, "thu": 4, "fri": 5, "sat": 6}
 
     def __init__(self, awaitable: AwaitableType, cron_format_string: str) -> None:
         log.debug(f"Create new cron with {cron_format_string=} {awaitable=}")
@@ -316,7 +386,10 @@ class CronJob:
         self.format = cron_format_string
         self.awaitable = awaitable
         if cron_format_string not in ["STARTUP", "SHUTDOWN"]:
-            self.parsed = _CronStringParser(self.format)
+            try:
+                self.parsed = _CronStringParser(self.format)
+            except InvalidCronStringException as ex:
+                raise CronJobInvalid() from ex
             self._schedule(CronJob._get_current_time())
 
     @property

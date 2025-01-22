@@ -2,7 +2,7 @@
 from datetime import datetime
 from functools import partial
 import pytest
-from cronie.cronie import CronJob
+from cronie.cronie import CronJob, CronJobInvalid
 
 
 @pytest.fixture(name="cron_job")
@@ -80,6 +80,66 @@ def test_minute_range(cron_job):
     assert cron_job("5-10 * * * *").next == datetime(2024, 6, 15, 13, 5, 0)
 
 
+def test_invalid_strings(cron_job):
+    with pytest.raises(CronJobInvalid):
+        cron_job("/5 * * * *")
+        cron_job("* y * * *")
+        cron_job(" * * *")
+        cron_job("*")
+        cron_job("1-90 * * * *")
+        cron_job("* * * * foo")
+        cron_job("-1 * * * *")
+        cron_job("* * * * -1")
+        cron_job("* * * -1 *")
+        cron_job("* * -1 * *")
+        cron_job("* -1 * * *")
+        cron_job("-1 * * * *")
+        cron_job("* * * * 8")
+        cron_job("* * * 13 *")
+        cron_job("* * 32 * *")
+        cron_job("* 25 * * *")
+        cron_job("61 * * * *")
+        cron_job("* * 0 * *")
+        cron_job("* * * 0 *")
+
+        # Thanks GPT
+        cron_job("* * *")  # Missing two fields (should have 5 fields)
+        cron_job("* * * * * *")  # Too many fields (should have 5 fields)
+        cron_job("*/0 * * * *")  # Invalid step value (step cannot be 0)
+        cron_job("-5 * * * *")  # Negative value in minute field
+        cron_job("61 * * * *")  # Out-of-range minute (valid: 0-59)
+        cron_job("0 24 * * *")  # Out-of-range hour (valid: 0-23)
+        cron_job("0 * 32 * *")  # Out-of-range day of month (valid: 1-31)
+        cron_job("0 * 0 * *")  # Invalid day of month (valid: 1-31)
+        cron_job("0 * * 13 *")  # Out-of-range month (valid: 1-12)
+        cron_job("0 * * 0 *")  # Invalid month (valid: 1-12)
+        cron_job(
+            "0 * * * 8"
+        )  # Out-of-range day of week (valid: 0-7, where 0 and 7 both mean Sunday)
+        cron_job("0 * * * -1")  # Negative day of week
+        cron_job("* */25 * * *")  # Invalid step for hour (valid: 1-23)
+        cron_job("* * 1-31/0 * *")  # Invalid step for day of month (step cannot be 0)
+        cron_job("*/60 * * * *")  # Step larger than the valid range for minutes
+        cron_job(
+            "0 0 * Jan-Mar *"
+        )  # Invalid month format (should use numeric values or abbreviations like JAN, FEB)
+        cron_job(
+            "0 0 * * Sun-Mon"
+        )  # Invalid day of week format (should use numeric values or abbreviations like SUN, MON)
+        cron_job(
+            "*/5 10 * ? *"
+        )  # Question mark (`?`) is not standard for all cron systems
+        cron_job(
+            "0 0 L * *"
+        )  # `L` is not universally supported (last day of the month is specific to extended cron implementations)
+        cron_job("0 0 1W * *")  # `1W` (nearest weekday) is not supported by all parsers
+
+
+def test_minute_step(cron_job):
+    assert cron_job("*/5 * * * *").next == datetime(2024, 6, 15, 12, 15, 0)
+    assert cron_job("5-20/5 * * * *").next == datetime(2024, 6, 15, 12, 15, 0)
+
+
 def test_weekday(cron_job):
     assert cron_job("* * * * 1").next == datetime(2024, 6, 17, 0, 0, 0)
     assert cron_job("* * * * 6").next == datetime(2024, 6, 15, 12, 14, 0)
@@ -93,6 +153,10 @@ def test_weekday(cron_job):
     assert cron_job("0 0 15 6 6").next == datetime(2024, 6, 22, 0, 0, 0)
     assert cron_job("0 10 1-7 * 1").next == datetime(2024, 6, 17, 10, 0, 0)
     assert cron_job("*/10 14 * * 2").next == datetime(2024, 6, 18, 14, 0, 0)
+    assert cron_job("* * * * 1/2").next == datetime(2024, 6, 17, 0, 0, 0)
+    assert cron_job("* * * * 2/2").next == datetime(2024, 6, 15, 12, 14, 0)
+    assert cron_job("* * * * 5/3").next == datetime(2024, 6, 21, 0, 0, 0)
+    assert cron_job("* * * * 2/3").next == datetime(2024, 6, 18, 0, 0, 0)
 
 
 def test_fixed_time(cron_job):
