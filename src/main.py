@@ -1,41 +1,60 @@
 # pylint: disable=missing-function-docstring,missing-module-docstring
 import logging
 from pycronie import (
-    cron, run_cron, reboot, startup,
-    shutdown, minutely, hourly, midnight,
-    daily, weekly, monthly, annually, yearly
+    cron,
+    run_cron,
+    reboot,
+    startup,
+    shutdown,
+    minutely,
+    hourly,
+    midnight,
+    daily,
+    weekly,
+    monthly,
+    annually,
+    yearly,
 )
+
 log = logging.getLogger(__name__)
 FORMAT = "%(asctime)-15s|%(levelname)s|%(name)s: %(message)s"
 logging.basicConfig(format=FORMAT, level=logging.INFO, datefmt="%Y-%m-%d %H:%M:%S")
+
 
 @reboot
 async def reboot_() -> None:
     log.info(reboot_.__name__)
 
+
 @shutdown
 async def shutdown_() -> None:
     log.info(shutdown_.__name__)
+
 
 @startup
 async def startup_() -> None:
     log.info(startup_.__name__)
 
+
 @minutely
 async def minutely_() -> None:
     log.info(minutely_.__name__)
+
 
 @hourly
 async def hourly_() -> None:
     log.info(hourly_.__name__)
 
+
 @midnight
 async def midnight_() -> None:
     log.info(midnight_.__name__)
 
+
 @daily
 async def daily_() -> None:
     log.info(daily_.__name__)
+
 
 @weekly
 async def weekly_() -> None:
@@ -46,9 +65,11 @@ async def weekly_() -> None:
 async def monthly_() -> None:
     log.info(monthly_.__name__)
 
+
 @annually
 async def anually_() -> None:
     log.info(anually_.__name__)
+
 
 @yearly
 async def yearly_() -> None:

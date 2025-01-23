@@ -10,5 +10,5 @@ pycronie documentation
    :maxdepth: 2
    :caption: Contents:
 
-.. autofunction:: pycronie.cron
-
+   quickstart
+   pycronie/modules
