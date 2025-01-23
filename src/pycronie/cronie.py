@@ -283,7 +283,6 @@ class CronJob:
                 raise CronJobInvalid() from ex
             self._schedule(CronJob._get_current_time())
 
-
     @property
     def months(self) -> list[int]:
         """Months on which this cron can run. Range 1-12"""
@@ -321,7 +320,6 @@ class CronJob:
     @next_run.deleter
     def next_run(self):
         del self._next_run
-
 
     @classmethod
     def _get_current_time(cls) -> datetime:
@@ -483,11 +481,14 @@ class CronJob:
     def due_in(self, now: datetime) -> int:
         """Returns seconds until the cron needs to be scheduled based on relative time input"""
         if self.next_run is None:
-            raise RuntimeError(f"Cron {self} is not scheduled. Likely to be a STARTUP or SHUTDOWN implementation")
+            raise RuntimeError(
+                f"Cron {self} is not scheduled. Likely to be a STARTUP or SHUTDOWN implementation"
+            )
         due_in = (self.next_run - now).total_seconds()
         return (
             int(due_in) + 1
         )  # Second precision is fine since cron operates on minutes
+
 
 def cron(cron_format_string: str) -> Callable[[AwaitableType], AwaitableType]:
     """Decorator function to annotate cron jobs.
@@ -498,6 +499,7 @@ def cron(cron_format_string: str) -> Callable[[AwaitableType], AwaitableType]:
     Returns:
         Callable[[AwaitableType], AwaitableType]: The function that has been annotated
     """
+
     def decorator(func: AwaitableType) -> AwaitableType:
         try:
             cron_job = CronJob(func, cron_format_string)
@@ -596,7 +598,9 @@ async def run_cron_async() -> None:
         for cron_job in cron_list:
             now = datetime.now()
             if cron_job.next_run and now >= cron_job.next_run:
-                log.info(f"{cron_job.format}: {cron_job.due_in(now)} {cron_job.next_run}")
+                log.info(
+                    f"{cron_job.format}: {cron_job.due_in(now)} {cron_job.next_run}"
+                )
                 await cron_job.run(now)
 
 
@@ -622,7 +626,7 @@ if __name__ == "__main__":
         return mock_dt
 
     @cron("* * * * *")
-    async def cron_job_example():
+    async def cron_job_example() -> None:
         """Example Cron function"""
 
     setattr(CronJob, "_get_current_time", _get_mock_time)
