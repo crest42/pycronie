@@ -31,4 +31,4 @@ repos:
         entry: bash -c 'pylint src/'
 
 
-exclude: 'build'
+exclude: 'build|src/docs/'
