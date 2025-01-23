@@ -4,8 +4,16 @@ version = "0.1.0"
 description = "A project to manage cron jobs."
 authors = ["Robin Lösch <robin@chilio.net>"]
 license = "MIT"
+license-files = "LICENSE.md"
+readme = "README.md"
 repository = "https://github.com/crest42/pycronie"
 keywords = ["cron", "scheduler", "parser"]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
