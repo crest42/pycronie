@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "cronie"
+name = "pycronie"
 version = "0.1.0"
 description = "A project to manage cron jobs."
 authors = ["Robin Lösch <robin@chilio.net>"]
