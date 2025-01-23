@@ -19,6 +19,10 @@ def cron_job_() -> partial[CronJob]:
     return partial(CronJob, _id)
 
 
+def test_noop() -> None:
+    assert True
+
+
 def test_minutely(cron_job: partial[CronJob]) -> None:
     assert cron_job("* * * * *").next_run == datetime(
         year=2024, month=6, day=15, hour=12, minute=14, second=0
