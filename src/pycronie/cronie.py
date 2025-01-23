@@ -411,7 +411,6 @@ class CronJob:
         )
 
     def _update_time(self, next_run: datetime) -> datetime:
-
         log.debug(f"update minute on {next_run}")
         next_run = self._update_minute(next_run)
 
@@ -421,7 +420,6 @@ class CronJob:
         return next_run
 
     def _update_date(self, next_run: datetime) -> datetime:
-
         log.debug(f"update weekday on {next_run}")
         weekday = self._update_weekday(next_run)
 
