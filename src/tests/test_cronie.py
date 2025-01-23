@@ -2,7 +2,7 @@
 from datetime import datetime
 from functools import partial
 import pytest
-from cronie.cronie import CronJob, CronJobInvalid
+from pycronie import CronJob, CronJobInvalid
 
 
 @pytest.fixture(name="cron_job")

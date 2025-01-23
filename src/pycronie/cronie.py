@@ -34,6 +34,7 @@ __all__ = [
     "run_cron",
     "run_cron_async",
     "CronJobInvalid",
+    "CronJob",
 ]
 
 AwaitableType = Callable[[], Coroutine[Any, Any, None]]
@@ -637,6 +638,10 @@ if __name__ == "__main__":
 
     def _get_mock_time() -> datetime:
         return mock_dt
+
+    @cron("* * * * *")
+    async def cron_job_example():
+        """Example Cron function"""
 
     setattr(CronJob, "_get_current_time", _get_mock_time)
 

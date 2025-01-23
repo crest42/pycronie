@@ -1,6 +1,6 @@
 # pylint: disable=missing-function-docstring,missing-module-docstring
 import logging
-from cronie.cronie import (
+from pycronie import (
     cron, run_cron, reboot, startup,
     shutdown, minutely, hourly, midnight,
     daily, weekly, monthly, annually, yearly
