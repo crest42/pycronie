@@ -1,5 +1,4 @@
-"""
-Small decorator based implementation of Unix beloved crontab.
+"""Small decorator based implementation of Unix beloved crontab.
 
 Usage:
 import asyncio
@@ -501,17 +500,15 @@ class CronJob:
             int(due_in) + 1
         )  # Second precision is fine since cron operates on minutes
 
-
 def cron(cron_format_string: str) -> Callable[[AwaitableType], AwaitableType]:
-    """
-    Decorator function to annotate cron jobs.
+    """Decorator function to annotate cron jobs.
 
-    Usage:
-    @cron("* * * * *")
-    async def job():
-        pass
-    """
+    Args:
+        cron_format_string (str): A valid cron format string (e. g. \* \* \* \* \*)
 
+    Returns:
+        Callable[[AwaitableType], AwaitableType]: _description_
+    """
     def decorator(func: AwaitableType) -> AwaitableType:
         @wraps(func)
         def wrapper():
