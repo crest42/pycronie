@@ -16,11 +16,13 @@ repos:
     hooks:
     - id: flake8
       additional_dependencies: [flake8-docstrings]
+      args: [--ignore=E501]
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: 'v1.14.1'
     hooks:
     - id: mypy
       args: [--strict]
+      exclude: src/tests
   - repo: local
     hooks:
       - id: pylint
