@@ -1,5 +1,4 @@
 # pylint: disable=missing-module-docstring,missing-function-docstring
-from typing import Type
 from datetime import datetime
 from functools import partial
 import pytest

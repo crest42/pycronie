@@ -10,15 +10,12 @@ repos:
       - id: mypy
         name: mypy
         language: python
-        verbose: true
-        entry: bash -c 'mypy --strict src/ || true' --
+        entry: bash -c 'mypy --strict src/'
       - id: pylint
         name: pylint
         language: python
-        verbose: true
-        entry: bash -c 'pylint src/ || true' --
+        entry: bash -c 'pylint src/'
       - id: black
         name: black
         language: python
-        verbose: true
-        entry: bash -c 'black --diff src/ || true' --
+        entry: bash -c 'black --diff src/'
