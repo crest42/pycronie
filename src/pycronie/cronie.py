@@ -318,7 +318,7 @@ class CronJob:
         self._next_run = next_run
 
     @next_run.deleter
-    def next_run(self):
+    def next_run(self) -> None:
         del self._next_run
 
     @classmethod
