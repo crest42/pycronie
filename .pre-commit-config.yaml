@@ -11,4 +11,4 @@ repos:
         name: mypy
         language: python
         verbose: true
-        entry: bash -c 'mypy src/ || true' --
+        entry: bash -c 'mypy --strict src/ || true' --
