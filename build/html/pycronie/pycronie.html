@@ -46,8 +46,29 @@
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">pycronie</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">pycronie package</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#module-pycronie">Module contents</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-pycronie">Module contents</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.cron"><code class="docutils literal notranslate"><span class="pre">cron()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.reboot"><code class="docutils literal notranslate"><span class="pre">reboot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.startup"><code class="docutils literal notranslate"><span class="pre">startup()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.shutdown"><code class="docutils literal notranslate"><span class="pre">shutdown()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.minutely"><code class="docutils literal notranslate"><span class="pre">minutely()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.hourly"><code class="docutils literal notranslate"><span class="pre">hourly()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.midnight"><code class="docutils literal notranslate"><span class="pre">midnight()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.daily"><code class="docutils literal notranslate"><span class="pre">daily()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.weekly"><code class="docutils literal notranslate"><span class="pre">weekly()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.monthly"><code class="docutils literal notranslate"><span class="pre">monthly()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.annually"><code class="docutils literal notranslate"><span class="pre">annually()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.yearly"><code class="docutils literal notranslate"><span class="pre">yearly()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.run_cron"><code class="docutils literal notranslate"><span class="pre">run_cron()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.run_cron_async"><code class="docutils literal notranslate"><span class="pre">run_cron_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.CronJobInvalid"><code class="docutils literal notranslate"><span class="pre">CronJobInvalid</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.CronJob"><code class="docutils literal notranslate"><span class="pre">CronJob</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#module-pycronie.cronie">pycronie.cronie</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.cronie.CronJobInvalid"><code class="docutils literal notranslate"><span class="pre">CronJobInvalid</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.cronie.InvalidCronStringException"><code class="docutils literal notranslate"><span class="pre">InvalidCronStringException</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.cronie.CronJob"><code class="docutils literal notranslate"><span class="pre">CronJob</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pycronie.cronie.cron"><code class="docutils literal notranslate"><span class="pre">cron()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pycronie.cronie.reboot"><code class="docutils literal notranslate"><span class="pre">reboot()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pycronie.cronie.startup"><code class="docutils literal notranslate"><span class="pre">startup()</span></code></a></li>
@@ -60,10 +81,8 @@
 <li class="toctree-l4"><a class="reference internal" href="#pycronie.cronie.monthly"><code class="docutils literal notranslate"><span class="pre">monthly()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pycronie.cronie.annually"><code class="docutils literal notranslate"><span class="pre">annually()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pycronie.cronie.yearly"><code class="docutils literal notranslate"><span class="pre">yearly()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#pycronie.cronie.run_cron"><code class="docutils literal notranslate"><span class="pre">run_cron()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pycronie.cronie.run_cron_async"><code class="docutils literal notranslate"><span class="pre">run_cron_async()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#pycronie.cronie.CronJobInvalid"><code class="docutils literal notranslate"><span class="pre">CronJobInvalid</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#pycronie.cronie.CronJob"><code class="docutils literal notranslate"><span class="pre">CronJob</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pycronie.cronie.run_cron"><code class="docutils literal notranslate"><span class="pre">run_cron()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -120,10 +139,244 @@ Calling run_cron ensures the cron event loop is executed.</p>
 <li><p>Execute all jobs that are up for execution</p></li>
 <li><p>Repeat</p></li>
 </ul>
+<dl class="py function">
+<dt class="sig sig-object py" id="pycronie.cron">
+<span class="sig-name descname"><span class="pre">cron</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cron_format_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycronie.cron" title="Link to this definition"></a></dt>
+<dd><p>Decorator function to annotate cron jobs.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>cron_format_string (str): A valid cron format string (e. g. ‘0 0 1 1 0-6’)</p>
+</dd>
+<dt>Returns:</dt><dd><p>Callable[[AwaitableType], AwaitableType]: The function that has been annotated</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycronie.reboot">
+<span class="sig-name descname"><span class="pre">reboot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycronie.reboot" title="Link to this definition"></a></dt>
+<dd><p>Decorator to schedule job once on startup</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycronie.startup">
+<span class="sig-name descname"><span class="pre">startup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycronie.startup" title="Link to this definition"></a></dt>
+<dd><p>Decorator to schedule job once on startup</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycronie.shutdown">
+<span class="sig-name descname"><span class="pre">shutdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycronie.shutdown" title="Link to this definition"></a></dt>
+<dd><p>Decorator to schedule job once on shutdown</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycronie.minutely">
+<span class="sig-name descname"><span class="pre">minutely</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycronie.minutely" title="Link to this definition"></a></dt>
+<dd><p>Decorator to schedule job every minute</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycronie.hourly">
+<span class="sig-name descname"><span class="pre">hourly</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycronie.hourly" title="Link to this definition"></a></dt>
+<dd><p>Decorator to schedule job once every hour</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycronie.midnight">
+<span class="sig-name descname"><span class="pre">midnight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycronie.midnight" title="Link to this definition"></a></dt>
+<dd><p>Decorator to schedule job once a day at midnight</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycronie.daily">
+<span class="sig-name descname"><span class="pre">daily</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycronie.daily" title="Link to this definition"></a></dt>
+<dd><p>Decorator to schedule job once a day at midnight</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycronie.weekly">
+<span class="sig-name descname"><span class="pre">weekly</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycronie.weekly" title="Link to this definition"></a></dt>
+<dd><p>Decorator to schedule job once a week at Sunday midnight</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycronie.monthly">
+<span class="sig-name descname"><span class="pre">monthly</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycronie.monthly" title="Link to this definition"></a></dt>
+<dd><p>Decorator to schedule job once a month at the 1st on midnight</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycronie.annually">
+<span class="sig-name descname"><span class="pre">annually</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycronie.annually" title="Link to this definition"></a></dt>
+<dd><p>Decorator to schedule job once a year on the 1st of Janurary midnight</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycronie.yearly">
+<span class="sig-name descname"><span class="pre">yearly</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycronie.yearly" title="Link to this definition"></a></dt>
+<dd><p>Decorator to schedule job once a year on the 1st of Janurary midnight</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycronie.run_cron">
+<span class="sig-name descname"><span class="pre">run_cron</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycronie.run_cron" title="Link to this definition"></a></dt>
+<dd><p>Runs the scheduler. Ensures the execution of discovered cronjobs and updates timinings</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycronie.run_cron_async">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">run_cron_async</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycronie.run_cron_async" title="Link to this definition"></a></dt>
+<dd><p>Runs the scheduler as an asnyc function.
+Ensures the execution of discovered cronjobs and updates timinings</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="pycronie.CronJobInvalid">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">CronJobInvalid</span></span><a class="headerlink" href="#pycronie.CronJobInvalid" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>General Exception raised when cron job could not be created e. g. due to a invalid string</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycronie.CronJob">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">CronJob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">awaitable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cron_format_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycronie.CronJob" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Main Wrapper for a single Cronjob. Includes the target function, cron string parsing, and timing information.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="pycronie.CronJob.months">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">months</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycronie.CronJob.months" title="Link to this definition"></a></dt>
+<dd><p>Months on which this cron can run. Range 1-12</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycronie.CronJob.weekdays">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">weekdays</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycronie.CronJob.weekdays" title="Link to this definition"></a></dt>
+<dd><p>Weekdays on which this cron can run. Range 0(sun)-6(sat)</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycronie.CronJob.days">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">days</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycronie.CronJob.days" title="Link to this definition"></a></dt>
+<dd><p>Days on which this cron can run. Range 1-31</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycronie.CronJob.hours">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">hours</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycronie.CronJob.hours" title="Link to this definition"></a></dt>
+<dd><p>Hours on which this cron can run. Range 0-23</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycronie.CronJob.minutes">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">minutes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycronie.CronJob.minutes" title="Link to this definition"></a></dt>
+<dd><p>Minutes on which this cron can run. Range 0-23</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycronie.CronJob.next_run">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">next_run</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">datetime</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#pycronie.CronJob.next_run" title="Link to this definition"></a></dt>
+<dd><p>Next point in time this cron is scheduled to run</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycronie.CronJob.run">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">now</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycronie.CronJob.run" title="Link to this definition"></a></dt>
+<dd><p>Executes a cron job.</p>
+<p>This function runs the cronjob and calculates the next point in time
+it needs to be schduled in reference to the input time</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>now (datetime): Time reference to calculate next scheduling.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycronie.CronJob.due_in">
+<span class="sig-name descname"><span class="pre">due_in</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">now</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#pycronie.CronJob.due_in" title="Link to this definition"></a></dt>
+<dd><p>Returns seconds until the cron needs to be scheduled based on relative time input</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="module-pycronie.cronie">
 <span id="pycronie-cronie"></span><h2>pycronie.cronie<a class="headerlink" href="#module-pycronie.cronie" title="Link to this heading"></a></h2>
 <p>Small decorator based implementation of Unix beloved crontab</p>
+<dl class="py exception">
+<dt class="sig sig-object py" id="pycronie.cronie.CronJobInvalid">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">CronJobInvalid</span></span><a class="headerlink" href="#pycronie.cronie.CronJobInvalid" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>General Exception raised when cron job could not be created e. g. due to a invalid string</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="pycronie.cronie.InvalidCronStringException">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">InvalidCronStringException</span></span><a class="headerlink" href="#pycronie.cronie.InvalidCronStringException" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>General Exception raised when cron string could not be parsed</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pycronie.cronie.CronJob">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">CronJob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">awaitable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cron_format_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycronie.cronie.CronJob" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Main Wrapper for a single Cronjob. Includes the target function, cron string parsing, and timing information.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="pycronie.cronie.CronJob.months">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">months</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycronie.cronie.CronJob.months" title="Link to this definition"></a></dt>
+<dd><p>Months on which this cron can run. Range 1-12</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycronie.cronie.CronJob.weekdays">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">weekdays</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycronie.cronie.CronJob.weekdays" title="Link to this definition"></a></dt>
+<dd><p>Weekdays on which this cron can run. Range 0(sun)-6(sat)</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycronie.cronie.CronJob.days">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">days</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycronie.cronie.CronJob.days" title="Link to this definition"></a></dt>
+<dd><p>Days on which this cron can run. Range 1-31</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycronie.cronie.CronJob.hours">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">hours</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycronie.cronie.CronJob.hours" title="Link to this definition"></a></dt>
+<dd><p>Hours on which this cron can run. Range 0-23</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycronie.cronie.CronJob.minutes">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">minutes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycronie.cronie.CronJob.minutes" title="Link to this definition"></a></dt>
+<dd><p>Minutes on which this cron can run. Range 0-23</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pycronie.cronie.CronJob.next_run">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">next_run</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">datetime</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#pycronie.cronie.CronJob.next_run" title="Link to this definition"></a></dt>
+<dd><p>Next point in time this cron is scheduled to run</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycronie.cronie.CronJob.run">
+<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">now</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycronie.cronie.CronJob.run" title="Link to this definition"></a></dt>
+<dd><p>Executes a cron job.</p>
+<p>This function runs the cronjob and calculates the next point in time
+it needs to be schduled in reference to the input time</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>now (datetime): Time reference to calculate next scheduling.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pycronie.cronie.CronJob.due_in">
+<span class="sig-name descname"><span class="pre">due_in</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">now</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#pycronie.cronie.CronJob.due_in" title="Link to this definition"></a></dt>
+<dd><p>Returns seconds until the cron needs to be scheduled based on relative time input</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="pycronie.cronie.cron">
 <span class="sig-name descname"><span class="pre">cron</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cron_format_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pycronie.cronie.cron" title="Link to this definition"></a></dt>
@@ -203,84 +456,16 @@ Calling run_cron ensures the cron event loop is executed.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pycronie.cronie.run_cron">
-<span class="sig-name descname"><span class="pre">run_cron</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycronie.cronie.run_cron" title="Link to this definition"></a></dt>
-<dd><p>Runs the scheduler. Ensures the execution of discovered cronjobs and updates timinings</p>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="pycronie.cronie.run_cron_async">
 <em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">run_cron_async</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycronie.cronie.run_cron_async" title="Link to this definition"></a></dt>
 <dd><p>Runs the scheduler as an asnyc function.
 Ensures the execution of discovered cronjobs and updates timinings</p>
 </dd></dl>
 
-<dl class="py exception">
-<dt class="sig sig-object py" id="pycronie.cronie.CronJobInvalid">
-<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">CronJobInvalid</span></span><a class="headerlink" href="#pycronie.cronie.CronJobInvalid" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
-<p>General Exception raised when cron job could not be created e. g. due to a invalid string</p>
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="pycronie.cronie.CronJob">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">CronJob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">awaitable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Coroutine</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cron_format_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pycronie.cronie.CronJob" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Main Wrapper for a single Cronjob. Includes the target function, cron string parsing, and timing information.</p>
-<dl class="py property">
-<dt class="sig sig-object py" id="pycronie.cronie.CronJob.months">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">months</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycronie.cronie.CronJob.months" title="Link to this definition"></a></dt>
-<dd><p>Months on which this cron can run. Range 1-12</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="pycronie.cronie.CronJob.weekdays">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">weekdays</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycronie.cronie.CronJob.weekdays" title="Link to this definition"></a></dt>
-<dd><p>Weekdays on which this cron can run. Range 0(sun)-6(sat)</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="pycronie.cronie.CronJob.days">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">days</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycronie.cronie.CronJob.days" title="Link to this definition"></a></dt>
-<dd><p>Days on which this cron can run. Range 1-31</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="pycronie.cronie.CronJob.hours">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">hours</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycronie.cronie.CronJob.hours" title="Link to this definition"></a></dt>
-<dd><p>Hours on which this cron can run. Range 0-23</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="pycronie.cronie.CronJob.minutes">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">minutes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pycronie.cronie.CronJob.minutes" title="Link to this definition"></a></dt>
-<dd><p>Minutes on which this cron can run. Range 0-23</p>
-</dd></dl>
-
-<dl class="py property">
-<dt class="sig sig-object py" id="pycronie.cronie.CronJob.next_run">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">next_run</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">datetime</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#pycronie.cronie.CronJob.next_run" title="Link to this definition"></a></dt>
-<dd><p>Next point in time this cron is scheduled to run</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pycronie.cronie.CronJob.run">
-<em class="property"><span class="pre">async</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">now</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycronie.cronie.CronJob.run" title="Link to this definition"></a></dt>
-<dd><p>Executes a cron job.</p>
-<p>This function runs the cronjob and calculates the next point in time
-it needs to be schduled in reference to the input time</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>now (datetime): Time reference to calculate next scheduling.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="pycronie.cronie.CronJob.due_in">
-<span class="sig-name descname"><span class="pre">due_in</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">now</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#pycronie.cronie.CronJob.due_in" title="Link to this definition"></a></dt>
-<dd><p>Returns seconds until the cron needs to be scheduled based on relative time input</p>
-</dd></dl>
-
+<dl class="py function">
+<dt class="sig sig-object py" id="pycronie.cronie.run_cron">
+<span class="sig-name descname"><span class="pre">run_cron</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#pycronie.cronie.run_cron" title="Link to this definition"></a></dt>
+<dd><p>Runs the scheduler. Ensures the execution of discovered cronjobs and updates timinings</p>
 </dd></dl>
 
 </section>

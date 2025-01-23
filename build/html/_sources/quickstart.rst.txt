@@ -28,6 +28,4 @@ To get going just annotate your first cron job with the :py:func:`cron` decorato
 
 This will make sure that the async function `cron_function` is discovered and executed every minute by the eventloop
 
-.. currentmodule:: pycronie.cronie
-
-.. autodecorator:: pycronie.cron
+.. autodecorator:: pycronie.cronie.cron
