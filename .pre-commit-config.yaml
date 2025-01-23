@@ -19,3 +19,8 @@ repos:
         name: black
         language: python
         entry: bash -c 'black --diff src/'
+  - repo: https://github.com/psf/black
+    rev: 23.1.0
+    hooks:
+    - id: black
+exclude: 'build'
