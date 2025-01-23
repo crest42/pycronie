@@ -12,6 +12,11 @@ repos:
         language: python
         verbose: true
         entry: bash -c 'mypy --strict src/ || true' --
+      - id: pylint
+        name: pylint
+        language: python
+        verbose: true
+        entry: bash -c 'pylint src/ || true' --
       - id: black
         name: black
         language: python
