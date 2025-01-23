@@ -16,7 +16,7 @@ from typing import Callable, Any, Coroutine
 import asyncio
 import logging
 from datetime import date, datetime, timedelta
-
+from functools import wraps
 
 __all__ = [
     "cron",
@@ -32,6 +32,7 @@ __all__ = [
     "annually",
     "yearly",
     "run_cron",
+    "run_cron_async",
     "CronJobInvalid",
 ]
 
@@ -60,94 +61,12 @@ log = logging.getLogger(__name__)
 WEEKDAY_MAP = {"sun": 0, "mon": 1, "tue": 2, "wed": 3, "thu": 4, "fri": 5, "sat": 6}
 
 
-def cron(cron_format_string: str) -> Callable[[AwaitableType], AwaitableType]:
-    """
-    Decorator function to annotate cron jobs.
-
-    Usage:
-    @cron("* * * * *")
-    async def job():
-        pass
-    """
-
-    def decorator(func: AwaitableType) -> AwaitableType:
-        try:
-            cron_job = CronJob(func, cron_format_string)
-            cron_list.append(cron_job)
-        except CronJobInvalid:
-            log.error(
-                f"Could not setup cronjob for {func.__name__} on schedule '{cron_format_string}'"
-            )
-        return func
-
-    return decorator
+class CronJobInvalid(Exception):
+    """General Exception raised when cron job could not be created e. g. due to a invalid string"""
 
 
-def reboot(func: AwaitableType) -> AwaitableType:
-    """Runs once on startup"""
-    try:
-        cron_job = CronJob(func, "STARTUP")
-        cron_startup_list.append(cron_job)
-    except CronJobInvalid:
-        log.error(f"Could not setup cronjob for {func.__name__} on '@startup' schedule")
-    return func
-
-
-def startup(func: AwaitableType) -> AwaitableType:
-    """Runs once on startup"""
-    return reboot(func)
-
-
-def shutdown(func: AwaitableType) -> AwaitableType:
-    """Runs once on shutdown"""
-    try:
-        cron_job = CronJob(func, "SHUTDOWN")
-        cron_shutdown_list.append(cron_job)
-    except CronJobInvalid:
-        log.error(
-            f"Could not setup cronjob for {func.__name__} on '@shutdown' schedule"
-        )
-    return func
-
-
-def minutely(func: AwaitableType) -> AwaitableType:
-    """Runs every minute"""
-    return cron(CRON_STRING_TEMPLATE_MINUTELY)(func)
-
-
-def hourly(func: AwaitableType) -> AwaitableType:
-    """Runs once every hour"""
-    return cron(CRON_STRING_TEMPLATE_HOURLY)(func)
-
-
-def midnight(func: AwaitableType) -> AwaitableType:
-    """Runs once a day at midnight"""
-    return cron(CRON_STRING_TEMPLATE_DAILY)(func)
-
-
-def daily(func: AwaitableType) -> AwaitableType:
-    """Runs once a day at midnight"""
-    return cron(CRON_STRING_TEMPLATE_DAILY)(func)
-
-
-def weekly(func: AwaitableType) -> AwaitableType:
-    """Runs once a week at Sunday midnight"""
-    return cron(CRON_STRING_TEMPLATE_WEEKLY)(func)
-
-
-def monthly(func: AwaitableType) -> AwaitableType:
-    """Runs once a month at the 1st on midnight"""
-    return cron(CRON_STRING_TEMPLATE_MONTHLY)(func)
-
-
-def annually(func: AwaitableType) -> AwaitableType:
-    """Runs once a year on the 1st of Janurary midnight"""
-    return cron(CRON_STRING_TEMPLATE_ANNUALLY)(func)
-
-
-def yearly(func: AwaitableType) -> AwaitableType:
-    """Runs once a year on the 1st of Janurary midnight"""
-    return cron(CRON_STRING_TEMPLATE_ANNUALLY)(func)
+class InvalidCronStringException(Exception):
+    """General Exception raised when cron string could not be parsed"""
 
 
 def _cast_cron_int(maybe_int: str) -> int:
@@ -201,8 +120,13 @@ def _cast_cron_weekday(maybe_weekday: str) -> int:
             ) from e
 
 
-class InvalidCronStringException(Exception):
-    """General Exception raised when cron string could not be parsed"""
+def _get_next(now: datetime) -> "CronJob":
+    """Returns next cron job that is due for execution"""
+    next_cron = cron_list[0]
+    for cron_job in cron_list[1:]:
+        if cron_job.due_in(now) < next_cron.due_in(now):
+            next_cron = cron_job
+    return next_cron
 
 
 class _CronStringParser:
@@ -363,17 +287,12 @@ class _CronStringParser:
         if len(parts) != 5:
             raise RuntimeError(f"Cron string {self.format} is not a valid cron string")
 
-        # TODO USE ranges?
         self.valid_minutes = self._try_parse_cron_minute(parts[0])
         self.valid_hours = self._try_parse_cron_hour(parts[1])
         self.valid_days = self._try_parse_cron_day(parts[2])
         self.valid_months = self._try_parse_cron_month(parts[3])
         self.valid_weekdays = self._try_parse_cron_weekday(parts[4])
         self._validate()
-
-
-class CronJobInvalid(Exception):
-    """General Exception raised when cron job could not be created e. g. due to a invalid string"""
 
 
 class CronJob:
@@ -571,7 +490,7 @@ class CronJob:
         Args:
             now (datetime): Time reference to calculate next scheduling.
         """
-        await self.awaitable()
+        asyncio.create_task(self.awaitable())
         self._schedule(now)
 
     def due_in(self, now: datetime) -> int:
@@ -582,16 +501,104 @@ class CronJob:
         )  # Second precision is fine since cron operates on minutes
 
 
-def _get_next(now: datetime) -> CronJob:
-    """Returns next cron job that is due for execution"""
-    next_cron = cron_list[0]
-    for cron_job in cron_list[1:]:
-        if cron_job.due_in(now) < next_cron.due_in(now):
-            next_cron = cron_job
-    return next_cron
+def cron(cron_format_string: str) -> Callable[[AwaitableType], AwaitableType]:
+    """
+    Decorator function to annotate cron jobs.
+
+    Usage:
+    @cron("* * * * *")
+    async def job():
+        pass
+    """
+
+    def decorator(func: AwaitableType) -> AwaitableType:
+        @wraps(func)
+        def wrapper():
+            return func
+
+        try:
+            cron_job = CronJob(func, cron_format_string)
+            cron_list.append(cron_job)
+        except CronJobInvalid:
+            log.error(
+                f"Could not setup cronjob for {func.__name__} on schedule '{cron_format_string}'"
+            )
+        return func
+
+    return decorator
 
 
-async def _start_cron() -> None:
+def reboot(func: AwaitableType) -> AwaitableType:
+    """Runs once on startup"""
+    try:
+        cron_job = CronJob(func, "STARTUP")
+        cron_startup_list.append(cron_job)
+    except CronJobInvalid:
+        log.error(f"Could not setup cronjob for {func.__name__} on '@startup' schedule")
+    return func
+
+
+def startup(func: AwaitableType) -> AwaitableType:
+    """Runs once on startup"""
+    return reboot(func)
+
+
+def shutdown(func: AwaitableType) -> AwaitableType:
+    """Runs once on shutdown"""
+    try:
+        cron_job = CronJob(func, "SHUTDOWN")
+        cron_shutdown_list.append(cron_job)
+    except CronJobInvalid:
+        log.error(
+            f"Could not setup cronjob for {func.__name__} on '@shutdown' schedule"
+        )
+    return func
+
+
+def minutely(func: AwaitableType) -> AwaitableType:
+    """Runs every minute"""
+    return cron(CRON_STRING_TEMPLATE_MINUTELY)(func)
+
+
+def hourly(func: AwaitableType) -> AwaitableType:
+    """Runs once every hour"""
+    return cron(CRON_STRING_TEMPLATE_HOURLY)(func)
+
+
+def midnight(func: AwaitableType) -> AwaitableType:
+    """Runs once a day at midnight"""
+    return cron(CRON_STRING_TEMPLATE_DAILY)(func)
+
+
+def daily(func: AwaitableType) -> AwaitableType:
+    """Runs once a day at midnight"""
+    return cron(CRON_STRING_TEMPLATE_DAILY)(func)
+
+
+def weekly(func: AwaitableType) -> AwaitableType:
+    """Runs once a week at Sunday midnight"""
+    return cron(CRON_STRING_TEMPLATE_WEEKLY)(func)
+
+
+def monthly(func: AwaitableType) -> AwaitableType:
+    """Runs once a month at the 1st on midnight"""
+    return cron(CRON_STRING_TEMPLATE_MONTHLY)(func)
+
+
+def annually(func: AwaitableType) -> AwaitableType:
+    """Runs once a year on the 1st of Janurary midnight"""
+    return cron(CRON_STRING_TEMPLATE_ANNUALLY)(func)
+
+
+def yearly(func: AwaitableType) -> AwaitableType:
+    """Runs once a year on the 1st of Janurary midnight"""
+    return cron(CRON_STRING_TEMPLATE_ANNUALLY)(func)
+
+
+async def run_cron_async() -> None:
+    """Runs the scheduler as an asnyc function.
+    Ensures the execution of discovered cronjobs and updates timinings
+    """
     for cron_job in cron_startup_list:
         await cron_job.awaitable()
     while True:
@@ -600,7 +607,7 @@ async def _start_cron() -> None:
         for cron_job in cron_list:
             if next_cron.due_in(now) >= cron_job.due_in(now):
                 log.info(
-                    f"cron available in {cron_job.due_in(now)}: {cron_job.awaitable.__name__}"
+                    f"cron available in {cron_job.due_in(now)}: {cron_job.awaitable}"
                 )
         await asyncio.sleep(max(1, next_cron.due_in(now)))
         for cron_job in cron_list:
@@ -613,7 +620,7 @@ async def _start_cron() -> None:
 def run_cron() -> None:
     """Runs the scheduler. Ensures the execution of discovered cronjobs and updates timinings"""
     try:
-        asyncio.run(_start_cron())
+        asyncio.run(run_cron_async())
     except KeyboardInterrupt:
         with asyncio.Runner() as runner:
             for cron_job in cron_shutdown_list:
@@ -639,3 +646,4 @@ if __name__ == "__main__":
     assert cron_ == expected
 
     log.info(f"{FMT} = {cron_=} == {expected=}")
+    run_cron()

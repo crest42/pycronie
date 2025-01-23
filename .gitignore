@@ -4,3 +4,4 @@ a.out
 __pycache__/
 *.code-workspace
 .local
+dist/
