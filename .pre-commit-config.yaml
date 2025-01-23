@@ -12,3 +12,8 @@ repos:
         language: python
         verbose: true
         entry: bash -c 'mypy --strict src/ || true' --
+      - id: black
+        name: black
+        language: python
+        verbose: true
+        entry: bash -c 'black --diff src/ || true' --
