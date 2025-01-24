@@ -10,7 +10,7 @@ AwaitableType = Callable[[], Coroutine[Any, Any, None]]
 cron_list: list["CronJob"] = []
 cron_startup_list: list["CronJob"] = []
 cron_shutdown_list: list["CronJob"] = []
-ANY = -1
+DEFAULT_EVENTLOOP_DELAY = 60
 HOURS_PER_DAY = 24
 MINUTES_PER_HOUR = 60
 DAYS_PER_MONTH = 31
@@ -90,8 +90,10 @@ def _cast_cron_weekday(maybe_weekday: str) -> int:
             ) from e
 
 
-def _get_next(now: datetime) -> "CronJob":
+def _get_next(now: datetime) -> Optional["CronJob"]:
     """Return next cron job that is due for execution."""
+    if not cron_list:
+        return None
     next_cron = cron_list[0]
     for cron_job in cron_list[1:]:
         if cron_job.due_in(now) < next_cron.due_in(now):
@@ -593,6 +595,9 @@ async def run_cron_async() -> None:
     while True:
         now = datetime.now()
         next_cron = _get_next(now)
+        if next_cron is None:
+            log.warning("No Cron could be selected for run. Exiting")
+            break
         for cron_job in cron_list:
             if next_cron.due_in(now) >= cron_job.due_in(now):
                 log.info(
@@ -611,11 +616,12 @@ async def run_cron_async() -> None:
 def run_cron() -> None:
     """Run the scheduler. Ensures the execution of discovered cronjobs and updates timinings."""
     try:
-        asyncio.run(run_cron_async())
+        return asyncio.run(run_cron_async())
     except KeyboardInterrupt:
         with asyncio.Runner() as runner:
             for cron_job in cron_shutdown_list:
                 runner.run((cron_job.awaitable()))
+        return None
 
 
 if __name__ == "__main__":
@@ -629,9 +635,9 @@ if __name__ == "__main__":
     def _get_mock_time() -> datetime:
         return mock_dt
 
-    @cron("* * * * *")
-    async def cron_job_example() -> None:
-        """Do nothhing. Used as test Cron function."""
+    # @cron("* * * * *")
+    # async def cron_job_example() -> None:
+    #     """Do nothhing. Used as test Cron function."""
 
     setattr(CronJob, "_get_current_time", _get_mock_time)
 

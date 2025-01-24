@@ -4,7 +4,7 @@
 from datetime import datetime
 from functools import partial
 import pytest
-from pycronie import CronJob, CronJobInvalid
+from pycronie import CronJob, CronJobInvalid, run_cron_async
 
 
 @pytest.fixture(name="cron_job")
@@ -201,3 +201,10 @@ def test_twice_an_hour(cron_job: partial[CronJob]) -> None:
 def test_leap_year(cron_job: partial[CronJob]) -> None:
     """Test cron job defined on a leap year only executed on the next leap year."""
     assert cron_job("0 0 29 2 *").next_run == datetime(2028, 2, 29, 0, 0, 0)
+
+
+@pytest.mark.asyncio
+async def test_empty_joblist() -> None:
+    """Ensure that run_cron_async terminates gracefully when no cronjobs are registered."""
+    result = await run_cron_async()  # type: ignore
+    assert result is None
