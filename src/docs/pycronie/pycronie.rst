@@ -8,11 +8,3 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
-
-pycronie.cronie
----------------
-
-.. automodule:: pycronie.cronie
-   :members:
-   :undoc-members:
-   :show-inheritance:

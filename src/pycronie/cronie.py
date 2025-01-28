@@ -34,7 +34,15 @@ class CronJobInvalid(Exception):
     """General Exception raised when cron job could not be created e. g. due to a invalid string."""
 
 
-class InvalidCronStringException(Exception):
+class CronJobNotPeriodic(Exception):
+    """Exception raised if tried to schedule a once off cronjob."""
+
+
+class InvalidCronFunction(CronJobInvalid):
+    """General Exception raised when cron job could not be created due to an invalid function."""
+
+
+class InvalidCronString(CronJobInvalid):
     """General Exception raised when cron string could not be parsed."""
 
 
@@ -42,7 +50,7 @@ def _cast_cron_int(maybe_int: str) -> int:
     try:
         return int(maybe_int)
     except ValueError as ex:
-        raise InvalidCronStringException() from ex
+        raise InvalidCronString() from ex
 
 
 def _is_leap_year(year: int) -> int:
@@ -84,9 +92,7 @@ def _cast_cron_weekday(maybe_weekday: str) -> int:
         try:
             return int(WEEKDAY_MAP[maybe_weekday])
         except KeyError:
-            raise InvalidCronStringException(
-                "Not a valid cron weekday number or string"
-            ) from e
+            raise InvalidCronString("Not a valid cron weekday number or string") from e
 
 
 class _CronStringParser:
@@ -103,7 +109,7 @@ class _CronStringParser:
         if schedule not in ["STARTUP", "SHUTDOWN"]:
             try:
                 self._parse_format()
-            except InvalidCronStringException as ex:
+            except InvalidCronString as ex:
                 log.error(f"Invalid cron string '{schedule}'. Exception while parsing")
                 raise ex
         self.valid = True
@@ -112,51 +118,43 @@ class _CronStringParser:
         if isinstance(self.valid_minutes, list):
             for elem in self.valid_minutes:
                 if elem < 0 or elem > 59:
-                    raise InvalidCronStringException(
-                        f"Invalid cron minute {self.valid_minutes}"
-                    )
+                    raise InvalidCronString(f"Invalid cron minute {self.valid_minutes}")
                 return
-        raise InvalidCronStringException(f"Invalid cron minute {self.valid_minutes}")
+        raise InvalidCronString(f"Invalid cron minute {self.valid_minutes}")
 
     def _validate_hour(self) -> None:
         if isinstance(self.valid_hours, list):
             for elem in self.valid_hours:
                 if elem < 0 or elem > 23:
-                    raise InvalidCronStringException(
-                        f"Invalid cron hour {self.valid_hours}"
-                    )
+                    raise InvalidCronString(f"Invalid cron hour {self.valid_hours}")
                 return
-        raise InvalidCronStringException(f"Invalid cron hour {self.valid_hours}")
+        raise InvalidCronString(f"Invalid cron hour {self.valid_hours}")
 
     def _validate_day(self) -> None:
         if isinstance(self.valid_days, list):
             for elem in self.valid_days:
                 if elem < 1 or elem > 31:
-                    raise InvalidCronStringException(
-                        f"Invalid cron day {self.valid_days}"
-                    )
+                    raise InvalidCronString(f"Invalid cron day {self.valid_days}")
                 return
-        raise InvalidCronStringException(f"Invalid cron day {self.valid_days}")
+        raise InvalidCronString(f"Invalid cron day {self.valid_days}")
 
     def _validate_month(self) -> None:
         if isinstance(self.valid_months, list):
             for elem in self.valid_months:
                 if elem < 1 or elem > 12:
-                    raise InvalidCronStringException(
-                        f"Invalid cron month {self.valid_months}"
-                    )
+                    raise InvalidCronString(f"Invalid cron month {self.valid_months}")
                 return
-        raise InvalidCronStringException(f"Invalid cron month {self.valid_months}")
+        raise InvalidCronString(f"Invalid cron month {self.valid_months}")
 
     def _validate_weekday(self) -> None:
         if isinstance(self.valid_weekdays, list):
             for elem in self.valid_weekdays:
                 if elem < 0 or elem > 6:
-                    raise InvalidCronStringException(
+                    raise InvalidCronString(
                         f"Invalid cron weekday {self.valid_weekdays}"
                     )
                 return
-        raise InvalidCronStringException(f"Invalid cron weekday {self.valid_weekdays}")
+        raise InvalidCronString(f"Invalid cron weekday {self.valid_weekdays}")
 
     def _validate(self) -> None:
         self._validate_minute()
@@ -243,7 +241,9 @@ class _CronStringParser:
     def _parse_format(self) -> None:
         parts = self.format.split(" ")
         if len(parts) != 5:
-            raise RuntimeError(f"Cron string {self.format} is not a valid cron string")
+            raise InvalidCronString(
+                f"Cron string {self.format} is not a valid cron string"
+            )
 
         self.valid_minutes = self._try_parse_cron_minute(parts[0])
         self.valid_hours = self._try_parse_cron_hour(parts[1])
@@ -263,14 +263,14 @@ class _CronJob:
         """
         log.debug(f"Create new cron with {schedule=} {awaitable=}")
         if not isinstance(schedule, str):
-            raise RuntimeError("Cron format string expected to be a string")
+            raise InvalidCronString("Cron format string expected to be a string")
         self.format = schedule
         self.awaitable = awaitable
         self._next_run: Optional[datetime] = None
         if schedule not in ["STARTUP", "SHUTDOWN"]:
             try:
                 self.parsed = _CronStringParser(self.format)
-            except InvalidCronStringException as ex:
+            except InvalidCronString as ex:
                 raise CronJobInvalid() from ex
             self._schedule(_CronJob._get_current_time())
 
@@ -470,10 +470,17 @@ class _CronJob:
         self._schedule(now)
 
     def due_in(self, now: datetime) -> int:
-        """Return seconds until the cron needs to be scheduled based on relative time input."""
+        """Return seconds until the cron needs to be scheduled based on relative time input.
+
+        Raises:
+            CronJobNotPeriodic: Raised when cron job is not periodic
+
+        Returns:
+            int: Seconds until this job is due for execution.
+        """
         if self.next_run is None:
-            raise RuntimeError(
-                f"Cron {self} is not scheduled. Likely to be a STARTUP or SHUTDOWN implementation"
+            raise CronJobNotPeriodic(
+                f"Cron {self} is not a periodic job. Likely to be a STARTUP or SHUTDOWN implementation"
             )
         due_in = (self.next_run - now).total_seconds()
         return (
@@ -504,18 +511,18 @@ class CronScheduler:
         return next_cron
 
     def add_cron(self, schedule: str, func: AwaitableType) -> None:
-        """Add a function to be executed according to schedule.
+        r"""Add a function to be executed according to schedule.
 
         Args:
-            schedule (str): Cron string schedule e. g. "* * * * *"
+            schedule (str): Cron string schedule (e. g. '\* \* \* \* \*')\n
             func (AwaitableType): Awaitable that should be run accroding to schedule
 
         Raises:
-            RuntimeWarning: _description_
+            InvalidCronFunction: Raised when the cron job could not be added due to a invalid cron function signature
         """
         cron_job = _CronJob(func, schedule)
         if inspect.signature(func).parameters:
-            raise RuntimeWarning(
+            raise InvalidCronFunction(
                 f"CronJobs function with parameters are not supported rn: '{inspect.signature(func).parameters}'"
             )
         self.cron_list.append(cron_job)

@@ -15,17 +15,20 @@ To install this project use
 To schedule a async function one must import the cron decorator and use it on any async function:
 
 ```
-from pycronie import cron
+from pycronie import Cron
 
-@cron("* * * * *")
+cron = Cron()
+
+@cron.cron("* * * * *")
 async def cron_function():
     pass
 ```
 
-To run the eventloop use run_cron():
+To run the eventloop use cron.run_cron():
 
 ```
-crom pycronie import run_cron
+crom pycronie import Cron
 
-run_cron()
+cron = Cron()
+cron.run_cron()
 ```
