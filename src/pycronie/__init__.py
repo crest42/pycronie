@@ -2,12 +2,13 @@
 
 To schedule a async function use::
 
-    from pycronie import cron, run_cron
-    @cron("* * * * *")
+    from pycronie import Cron
+    cron = Cron()
+    @cron.cron("* * * * *")
     async def cron_function():
         pass
 
-    run_cron()
+    cron.run_cron()
 
 This will register cron_function to be scheduled each minute.
 Calling run_cron ensures the cron event loop is executed.

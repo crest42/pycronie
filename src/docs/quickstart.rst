@@ -18,15 +18,16 @@ Example
 -------
 To get going just annotate your first cron job with the :py:func:`cron` decorator::
 
-   from pycronie import cron, run_cron
+   from pycronie import Cron
 
-   @cron("* * * * *")
+   cron = Cron()
+   @cron.cron("* * * * *")
    async def cron_function():
       pass
 
-   run_cron()
+   cron.run_cron()
 
 This will make sure that the async function `cron_function` is discovered and executed every minute by the eventloop
 
-.. autodecorator:: pycronie.cronie.cron
+.. autodecorator:: pycronie.cronie.Cron.cron
    :no-index:
