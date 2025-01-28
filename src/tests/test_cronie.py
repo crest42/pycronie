@@ -4,11 +4,18 @@
 from datetime import datetime
 from functools import partial
 import pytest
-from pycronie import CronJob, CronJobInvalid
+from pycronie import CronJobInvalid, Cron
+from pycronie.cronie import _CronJob
+
+
+@pytest.fixture(name="cron_runner", scope="session")
+def cron_runner_() -> Cron:
+    """Pytest fixture for a session wide cron runnner."""
+    return Cron()
 
 
 @pytest.fixture(name="cron_job")
-def cron_job_() -> partial[CronJob]:
+def cron_job_() -> partial[_CronJob]:
     """Pytest fixture to retrun a mock instance of the CronJob class with a fixed noop function as call target."""
     mock_dt = datetime(year=2024, month=6, day=15, hour=12, minute=13, second=0)
 
@@ -18,24 +25,24 @@ def cron_job_() -> partial[CronJob]:
     async def _id() -> None:
         pass
 
-    setattr(CronJob, "_get_current_time", _get_mock_time)
-    return partial(CronJob, _id)
+    setattr(_CronJob, "_get_current_time", _get_mock_time)
+    return partial(_CronJob, _id)
 
 
-def test_once(cron_job: partial[CronJob]) -> None:
+def test_once(cron_job: partial[_CronJob]) -> None:
     """Tests once off cron jobs have no date associated."""
     assert cron_job("STARTUP").next_run is None
     assert cron_job("SHUTDOWN").next_run is None
 
 
-def test_minutely(cron_job: partial[CronJob]) -> None:
+def test_minutely(cron_job: partial[_CronJob]) -> None:
     """Test instance of cron job exdcuted each minute."""
     assert cron_job("* * * * *").next_run == datetime(
         year=2024, month=6, day=15, hour=12, minute=14, second=0
     )
 
 
-def test_hourly(cron_job: partial[CronJob]) -> None:
+def test_hourly(cron_job: partial[_CronJob]) -> None:
     """Test different instances of hourly cron jobs."""
     assert cron_job("0 * * * *").next_run == datetime(2024, 6, 15, 13, 0, 0)
     assert cron_job("13 * * * *").next_run == datetime(2024, 6, 15, 13, 13, 0)
@@ -43,7 +50,7 @@ def test_hourly(cron_job: partial[CronJob]) -> None:
     assert cron_job("59 * * * *").next_run == datetime(2024, 6, 15, 12, 59, 0)
 
 
-def test_daily(cron_job: partial[CronJob]) -> None:
+def test_daily(cron_job: partial[_CronJob]) -> None:
     """Test different instances of daily cron jobs."""
     assert cron_job("* 0 * * *").next_run == datetime(2024, 6, 16, 0, 0, 0)
     assert cron_job("* 12 * * *").next_run == datetime(2024, 6, 15, 12, 14, 0)
@@ -56,7 +63,7 @@ def test_daily(cron_job: partial[CronJob]) -> None:
     assert cron_job("0 12 15 * *").next_run == datetime(2024, 7, 15, 12, 0, 0)
 
 
-def test_once_a_month(cron_job: partial[CronJob]) -> None:
+def test_once_a_month(cron_job: partial[_CronJob]) -> None:
     """Test different instances of monthly cron jobs."""
     assert cron_job("12 12 1 * *").next_run == datetime(2024, 7, 1, 12, 12, 0)
     assert cron_job("* * 1 * *").next_run == datetime(2024, 7, 1, 0, 0, 0)
@@ -65,13 +72,13 @@ def test_once_a_month(cron_job: partial[CronJob]) -> None:
     assert cron_job("15 14 1 * *").next_run == datetime(2024, 7, 1, 14, 15, 0)
 
 
-def test_monthly(cron_job: partial[CronJob]) -> None:
+def test_monthly(cron_job: partial[_CronJob]) -> None:
     """Test different instances of cron jobs run only on a single month."""
     assert cron_job("* * * 1 *").next_run == datetime(2025, 1, 1, 0, 0, 0)
     assert cron_job("* * * 12 *").next_run == datetime(2024, 12, 1, 0, 0, 0)
 
 
-def test_fixed_datetime(cron_job: partial[CronJob]) -> None:
+def test_fixed_datetime(cron_job: partial[_CronJob]) -> None:
     """Test different instances of cron jobs with exact timinings."""
     assert cron_job("42 23 24 12 *").next_run == datetime(2024, 12, 24, 23, 42, 0)
     assert cron_job("1 1 1 1 *").next_run == datetime(2025, 1, 1, 1, 1, 0)
@@ -79,26 +86,26 @@ def test_fixed_datetime(cron_job: partial[CronJob]) -> None:
     assert cron_job("30 8 15 6 *").next_run == datetime(2025, 6, 15, 8, 30, 0)
 
 
-def test_day_range(cron_job: partial[CronJob]) -> None:
+def test_day_range(cron_job: partial[_CronJob]) -> None:
     """Test different instances of cron jobs with range definitions."""
     assert cron_job("0 4 8-14 * *").next_run == datetime(2024, 7, 8, 4, 0, 0)
     assert cron_job("0 4 1-3 * *").next_run == datetime(2024, 7, 1, 4, 0, 0)
     assert cron_job("0 4 20-22 * *").next_run == datetime(2024, 6, 20, 4, 0, 0)
 
 
-def test_hour_range(cron_job: partial[CronJob]) -> None:
+def test_hour_range(cron_job: partial[_CronJob]) -> None:
     """Test different instances of cron jobs with range definitions."""
     assert cron_job("* 1-5 * * *").next_run == datetime(2024, 6, 16, 1, 0, 0)
     assert cron_job("* 9-17 * * *").next_run == datetime(2024, 6, 15, 12, 14, 0)
     assert cron_job("* 20-22 * * *").next_run == datetime(2024, 6, 15, 20, 0, 0)
 
 
-def test_minute_range(cron_job: partial[CronJob]) -> None:
+def test_minute_range(cron_job: partial[_CronJob]) -> None:
     """Test different instances of cron jobs with range definitions."""
     assert cron_job("5-10 * * * *").next_run == datetime(2024, 6, 15, 13, 5, 0)
 
 
-def test_invalid_strings(cron_job: partial[CronJob]) -> None:
+def test_invalid_strings(cron_job: partial[_CronJob]) -> None:
     """Test different instances of cron jobs with invalid inputs."""
     with pytest.raises(CronJobInvalid):
         cron_job("/5 * * * *")
@@ -154,13 +161,13 @@ def test_invalid_strings(cron_job: partial[CronJob]) -> None:
         cron_job("0 0 1W * *")  # `1W` (nearest weekday) is not supported by all parsers
 
 
-def test_minute_step(cron_job: partial[CronJob]) -> None:
+def test_minute_step(cron_job: partial[_CronJob]) -> None:
     """Test different instances of cron jobs with step definitions."""
     assert cron_job("*/5 * * * *").next_run == datetime(2024, 6, 15, 12, 15, 0)
     assert cron_job("5-20/5 * * * *").next_run == datetime(2024, 6, 15, 12, 15, 0)
 
 
-def test_weekday(cron_job: partial[CronJob]) -> None:
+def test_weekday(cron_job: partial[_CronJob]) -> None:
     """Test different instances of cron jobs with weekday definitions."""
     assert cron_job("* * * * 1").next_run == datetime(2024, 6, 17, 0, 0, 0)
     assert cron_job("* * * * 6").next_run == datetime(2024, 6, 15, 12, 14, 0)
@@ -180,24 +187,32 @@ def test_weekday(cron_job: partial[CronJob]) -> None:
     assert cron_job("* * * * 2/3").next_run == datetime(2024, 6, 18, 0, 0, 0)
 
 
-def test_fixed_time(cron_job: partial[CronJob]) -> None:
+def test_fixed_time(cron_job: partial[_CronJob]) -> None:
     """Test different instances of cron jobs with a fixed time."""
     assert cron_job("5 12 * * *").next_run == datetime(2024, 6, 16, 12, 5, 0)
     assert cron_job("20 12 * * *").next_run == datetime(2024, 6, 15, 12, 20, 0)
     assert cron_job("0 0 * * *").next_run == datetime(2024, 6, 16, 0, 0, 0)
 
 
-def test_step_minute(cron_job: partial[CronJob]) -> None:
+def test_step_minute(cron_job: partial[_CronJob]) -> None:
     """Test different instances of cron jobs with a step definition."""
     assert cron_job("*/2 * * * *").next_run == datetime(2024, 6, 15, 12, 14, 0)
     assert cron_job("*/15 * * * *").next_run == datetime(2024, 6, 15, 12, 15, 0)
 
 
-def test_twice_an_hour(cron_job: partial[CronJob]) -> None:
+def test_twice_an_hour(cron_job: partial[_CronJob]) -> None:
     """Test different instances of cron jobs with a comma definition."""
     assert cron_job("15,45 12 * * *").next_run == datetime(2024, 6, 15, 12, 15, 0)
 
 
-def test_leap_year(cron_job: partial[CronJob]) -> None:
+def test_leap_year(cron_job: partial[_CronJob]) -> None:
     """Test cron job defined on a leap year only executed on the next leap year."""
     assert cron_job("0 0 29 2 *").next_run == datetime(2028, 2, 29, 0, 0, 0)
+
+
+@pytest.mark.asyncio
+async def test_empty_joblist() -> None:
+    """Ensure that run_cron_async terminates gracefully when no cronjobs are registered."""
+    cron_runner = Cron()
+    result = await cron_runner.run_cron_async()  # type: ignore
+    assert result is None
