@@ -1,15 +1,14 @@
 """Small decorator based implementation of Unix beloved crontab."""
 
-from typing import Callable, Any, Coroutine, Optional
+from typing import Callable, Any, Coroutine, List, Optional
 
 import asyncio
 import logging
+import inspect
 from datetime import date, datetime, timedelta
+import functools
 
 AwaitableType = Callable[[], Coroutine[Any, Any, None]]
-cron_list: list["CronJob"] = []
-cron_startup_list: list["CronJob"] = []
-cron_shutdown_list: list["CronJob"] = []
 DEFAULT_EVENTLOOP_DELAY = 60
 HOURS_PER_DAY = 24
 MINUTES_PER_HOUR = 60
@@ -90,35 +89,22 @@ def _cast_cron_weekday(maybe_weekday: str) -> int:
             ) from e
 
 
-def _get_next(now: datetime) -> Optional["CronJob"]:
-    """Return next cron job that is due for execution."""
-    if not cron_list:
-        return None
-    next_cron = cron_list[0]
-    for cron_job in cron_list[1:]:
-        if cron_job.due_in(now) < next_cron.due_in(now):
-            next_cron = cron_job
-    return next_cron
-
-
 class _CronStringParser:
     """Main Cron string parsing functionallity.
 
     Parses a cron string into sets of valid minutes, hours, days and weeks.
     Valid means that the cron can be executed at that timings.
 
-    Used in CronJob to schedule job
+    Used in _CronJob to schedule job
     """
 
-    def __init__(self, cron_format_string: str) -> None:
-        self.format = cron_format_string
-        if cron_format_string not in ["STARTUP", "SHUTDOWN"]:
+    def __init__(self, schedule: str) -> None:
+        self.format = schedule
+        if schedule not in ["STARTUP", "SHUTDOWN"]:
             try:
                 self._parse_format()
             except InvalidCronStringException as ex:
-                log.error(
-                    f"Invalid cron string '{cron_format_string}'. Exception while parsing"
-                )
+                log.error(f"Invalid cron string '{schedule}'. Exception while parsing")
                 raise ex
         self.valid = True
 
@@ -181,13 +167,13 @@ class _CronStringParser:
 
     def _try_parse_cron(
         self,
-        cron_format_string: str,
+        schedule: str,
         end: int,
         cast_function: Callable[[str], int] = _cast_cron_int,
     ) -> list[int]:
-        assert isinstance(cron_format_string, str)
+        assert isinstance(schedule, str)
         values = []
-        parts = cron_format_string.split(",")
+        parts = schedule.split(",")
         for part in parts:
             step_size = 1
             if "/" in part:
@@ -267,26 +253,26 @@ class _CronStringParser:
         self._validate()
 
 
-class CronJob:
+class _CronJob:
     """Main Wrapper for a single Cronjob. Includes the target function, cron string parsing, and timing information."""
 
-    def __init__(self, awaitable: AwaitableType, cron_format_string: str) -> None:
-        """Create a new CronJob.
+    def __init__(self, awaitable: AwaitableType, schedule: str) -> None:
+        """Create a new _CronJob.
 
-        Creates a cron job and initiallize next scheduling with CronJob._get_current_time as reference
+        Creates a cron job and initiallize next scheduling with _CronJob._get_current_time as reference
         """
-        log.debug(f"Create new cron with {cron_format_string=} {awaitable=}")
-        if not isinstance(cron_format_string, str):
+        log.debug(f"Create new cron with {schedule=} {awaitable=}")
+        if not isinstance(schedule, str):
             raise RuntimeError("Cron format string expected to be a string")
-        self.format = cron_format_string
+        self.format = schedule
         self.awaitable = awaitable
         self._next_run: Optional[datetime] = None
-        if cron_format_string not in ["STARTUP", "SHUTDOWN"]:
+        if schedule not in ["STARTUP", "SHUTDOWN"]:
             try:
                 self.parsed = _CronStringParser(self.format)
             except InvalidCronStringException as ex:
                 raise CronJobInvalid() from ex
-            self._schedule(CronJob._get_current_time())
+            self._schedule(_CronJob._get_current_time())
 
     @property
     def months(self) -> list[int]:
@@ -495,133 +481,252 @@ class CronJob:
         )  # Second precision is fine since cron operates on minutes
 
 
-def cron(cron_format_string: str) -> Callable[[AwaitableType], AwaitableType]:
-    """Decorate a function function to annotate a cron function.
+class CronScheduler:
+    """A Cron Scheduler.
 
-    Args:
-        cron_format_string (str): A valid cron format string (e. g. '0 0 1 1 0-6')
-
-    Returns:
-        Callable[[AwaitableType], AwaitableType]: The function that has been annotated
+    A scheduler is a wrapper around a list of cron jobs that can be run by the main runner implementation
     """
 
-    def decorator(func: AwaitableType) -> AwaitableType:
+    def __init__(self) -> None:
+        """Create a new CronScheduler object used as a collection of cron jobs."""
+        self.cron_startup_list: List[_CronJob] = []
+        self.cron_list: List[_CronJob] = []
+        self.cron_shutdown_list: List[_CronJob] = []
+
+    def _get_next(self, now: datetime) -> Optional["_CronJob"]:
+        """Return next cron job that is due for execution."""
+        if not self.cron_list:
+            return None
+        next_cron = self.cron_list[0]
+        for cron_job in self.cron_list[1:]:
+            if cron_job.due_in(now) < next_cron.due_in(now):
+                next_cron = cron_job
+        return next_cron
+
+    def add_cron(self, schedule: str, func: AwaitableType) -> None:
+        """Add a function to be executed according to schedule.
+
+        Args:
+            schedule (str): Cron string schedule e. g. "* * * * *"
+            func (AwaitableType): Awaitable that should be run accroding to schedule
+
+        Raises:
+            RuntimeWarning: _description_
+        """
+        cron_job = _CronJob(func, schedule)
+        if inspect.signature(func).parameters:
+            raise RuntimeWarning(
+                f"CronJobs function with parameters are not supported rn: '{inspect.signature(func).parameters}'"
+            )
+        self.cron_list.append(cron_job)
+
+    def add_startup_cron(self, func: AwaitableType) -> None:
+        """Add a cron that is executed only on startup of the application."""
+        cron_job = _CronJob(func, "STARTUP")
+        self.cron_startup_list.append(cron_job)
+
+    def add_shutdown_cron(self, func: AwaitableType) -> None:
+        """Add a cron that is executed only on shutdown of the application."""
+        cron_job = _CronJob(func, "SHUTDOWN")
+        self.cron_startup_list.append(cron_job)
+
+
+class Cron:
+    """Main Cron runner implementation.
+
+    A cron runner consists of a set of schedulers
+    and determines which crons next to run according to their schedulers
+    """
+
+    def __init__(self) -> None:
+        """Create a new cron runner instance."""
+        self.schedulers: List[CronScheduler] = [CronScheduler()]
+
+    def _get_next(self, now: datetime) -> Optional["_CronJob"]:
+        """Return next cron job that is due for execution."""
+        all_crons = self.get_crons()
+        if not all_crons:
+            return None
+        next_cron = all_crons[0]
+        for cron_job in all_crons[1:]:
+            if cron_job.due_in(now) < next_cron.due_in(now):
+                next_cron = cron_job
+        return next_cron
+
+    @property
+    def scheduler(self) -> CronScheduler:
+        """Return the main scheduler created in the initialization of the runner.
+
+        Returns:
+            CronScheduler: Main scheduler used for all jobs that are not added via another scheduler directly
+        """
+        return self.schedulers[0]
+
+    def include_scheduler(self, scheduler: CronScheduler) -> None:
+        """Add another scheduler to the cron runner implementation.
+
+        Useful for bound methods not fully known when decorators are run. (i. e. class methods)
+
+        Args:
+            scheduler (CronScheduler): Scheduler to add. Will be included in cron execution planing
+        """
+        self.schedulers.append(scheduler)
+
+    def cron(self, schedule: str) -> Callable[[AwaitableType], AwaitableType]:
+        """Decorate a function function to annotate a cron function.
+
+        Args:
+            schedule (str): A valid cron format string (e. g. '0 0 1 1 0-6')
+
+        Returns:
+            Callable[[AwaitableType], AwaitableType]: The function that has been annotated
+        """
+
+        def decorator(func: AwaitableType) -> AwaitableType:
+            try:
+                self.scheduler.add_cron(schedule, func)
+
+                @functools.wraps(func)
+                def inner() -> Coroutine[Any, Any, None]:
+                    return func()
+
+                return inner
+            except CronJobInvalid:
+                log.error(
+                    f"Could not setup cronjob for {func.__name__} on schedule '{schedule}'"
+                )
+            return func
+
+        return decorator
+
+    def reboot(self, func: AwaitableType) -> AwaitableType:
+        """Decorate a function to schedule job once on startup."""
         try:
-            cron_job = CronJob(func, cron_format_string)
-            cron_list.append(cron_job)
+            self.scheduler.add_startup_cron(func)
         except CronJobInvalid:
             log.error(
-                f"Could not setup cronjob for {func.__name__} on schedule '{cron_format_string}'"
+                f"Could not setup cronjob for {func.__name__} on '@startup' schedule"
             )
         return func
 
-    return decorator
+    def startup(self, func: AwaitableType) -> AwaitableType:
+        """Decorate a function to schedule job once on startup."""
+        return self.reboot(func)
 
+    def shutdown(self, func: AwaitableType) -> AwaitableType:
+        """Decorate a function to schedule job once on shutdown."""
+        try:
+            self.scheduler.add_shutdown_cron(func)
+        except CronJobInvalid:
+            log.error(
+                f"Could not setup cronjob for {func.__name__} on '@shutdown' schedule"
+            )
+        return func
 
-def reboot(func: AwaitableType) -> AwaitableType:
-    """Decorate a function to schedule job once on startup."""
-    try:
-        cron_job = CronJob(func, "STARTUP")
-        cron_startup_list.append(cron_job)
-    except CronJobInvalid:
-        log.error(f"Could not setup cronjob for {func.__name__} on '@startup' schedule")
-    return func
+    def minutely(self, func: AwaitableType) -> AwaitableType:
+        """Decorate a function to schedule job every minute."""
+        return self.cron(CRON_STRING_TEMPLATE_MINUTELY)(func)
 
+    def hourly(self, func: AwaitableType) -> AwaitableType:
+        """Decorate a function to schedule job once every hour."""
+        return self.cron(CRON_STRING_TEMPLATE_HOURLY)(func)
 
-def startup(func: AwaitableType) -> AwaitableType:
-    """Decorate a function to schedule job once on startup."""
-    return reboot(func)
+    def midnight(self, func: AwaitableType) -> AwaitableType:
+        """Decorate a function to schedule job once a day at midnight."""
+        return self.cron(CRON_STRING_TEMPLATE_DAILY)(func)
 
+    def daily(self, func: AwaitableType) -> AwaitableType:
+        """Decorate a function to schedule job once a day at midnight."""
+        return self.cron(CRON_STRING_TEMPLATE_DAILY)(func)
 
-def shutdown(func: AwaitableType) -> AwaitableType:
-    """Decorate a function to schedule job once on shutdown."""
-    try:
-        cron_job = CronJob(func, "SHUTDOWN")
-        cron_shutdown_list.append(cron_job)
-    except CronJobInvalid:
-        log.error(
-            f"Could not setup cronjob for {func.__name__} on '@shutdown' schedule"
-        )
-    return func
+    def weekly(self, func: AwaitableType) -> AwaitableType:
+        """Decorate a function to schedule job once a week at Sunday midnight."""
+        return self.cron(CRON_STRING_TEMPLATE_WEEKLY)(func)
 
+    def monthly(self, func: AwaitableType) -> AwaitableType:
+        """Decorate a function to schedule job once a month at the 1st on midnight."""
+        return self.cron(CRON_STRING_TEMPLATE_MONTHLY)(func)
 
-def minutely(func: AwaitableType) -> AwaitableType:
-    """Decorate a function to schedule job every minute."""
-    return cron(CRON_STRING_TEMPLATE_MINUTELY)(func)
+    def annually(self, func: AwaitableType) -> AwaitableType:
+        """Decorate a function to schedule job once a year on the 1st of Janurary midnight."""
+        return self.cron(CRON_STRING_TEMPLATE_ANNUALLY)(func)
 
+    def yearly(self, func: AwaitableType) -> AwaitableType:
+        """Decorate a function to schedule job once a year on the 1st of Janurary midnight."""
+        return self.cron(CRON_STRING_TEMPLATE_ANNUALLY)(func)
 
-def hourly(func: AwaitableType) -> AwaitableType:
-    """Decorate a function to schedule job once every hour."""
-    return cron(CRON_STRING_TEMPLATE_HOURLY)(func)
+    def get_startup_crons(self) -> List[_CronJob]:
+        """Return a list of all startup cronjobs included in all schedulers.
 
+        Returns:
+            List[_CronJob]: List of cron jobs run at startup
+        """
+        return [
+            cron_job
+            for scheduler in self.schedulers
+            for cron_job in scheduler.cron_startup_list
+        ]
 
-def midnight(func: AwaitableType) -> AwaitableType:
-    """Decorate a function to schedule job once a day at midnight."""
-    return cron(CRON_STRING_TEMPLATE_DAILY)(func)
+    def get_shutdown_crons(self) -> List[_CronJob]:
+        """Return a list of all shutdown cronjobs included in all schedulers.
 
+        Returns:
+            List[_CronJob]: List of cron jobs run at shutdown
+        """
+        return [
+            cron_job
+            for scheduler in self.schedulers
+            for cron_job in scheduler.cron_shutdown_list
+        ]
 
-def daily(func: AwaitableType) -> AwaitableType:
-    """Decorate a function to schedule job once a day at midnight."""
-    return cron(CRON_STRING_TEMPLATE_DAILY)(func)
+    def get_crons(self) -> List[_CronJob]:
+        """Return a list of all periodic cronjobs included in all schedulers.
 
+        Returns:
+            List[_CronJob]: List of periodic cron jobs
+        """
+        return [
+            cron_job
+            for scheduler in self.schedulers
+            for cron_job in scheduler.cron_list
+        ]
 
-def weekly(func: AwaitableType) -> AwaitableType:
-    """Decorate a function to schedule job once a week at Sunday midnight."""
-    return cron(CRON_STRING_TEMPLATE_WEEKLY)(func)
+    async def run_cron_async(self) -> None:
+        """Run the scheduler as an asnyc function.
 
-
-def monthly(func: AwaitableType) -> AwaitableType:
-    """Decorate a function to schedule job once a month at the 1st on midnight."""
-    return cron(CRON_STRING_TEMPLATE_MONTHLY)(func)
-
-
-def annually(func: AwaitableType) -> AwaitableType:
-    """Decorate a function to schedule job once a year on the 1st of Janurary midnight."""
-    return cron(CRON_STRING_TEMPLATE_ANNUALLY)(func)
-
-
-def yearly(func: AwaitableType) -> AwaitableType:
-    """Decorate a function to schedule job once a year on the 1st of Janurary midnight."""
-    return cron(CRON_STRING_TEMPLATE_ANNUALLY)(func)
-
-
-async def run_cron_async() -> None:
-    """Run the scheduler as an asnyc function.
-
-    Ensures the execution of discovered cronjobs and updates timinings
-    """
-    for cron_job in cron_startup_list:
-        await cron_job.awaitable()
-    while True:
-        now = datetime.now()
-        next_cron = _get_next(now)
-        if next_cron is None:
-            log.warning("No Cron could be selected for run. Exiting")
-            break
-        for cron_job in cron_list:
-            if next_cron.due_in(now) >= cron_job.due_in(now):
-                log.info(
-                    f"cron available in {cron_job.due_in(now)}: {cron_job.awaitable}"
-                )
-        await asyncio.sleep(max(1, next_cron.due_in(now)))
-        for cron_job in cron_list:
+        Ensures the execution of discovered cronjobs and updates timinings.
+        """
+        for cron_job in self.get_startup_crons():
+            await cron_job.awaitable()
+        while True:
             now = datetime.now()
-            if cron_job.next_run and now >= cron_job.next_run:
-                log.info(
-                    f"{cron_job.format}: {cron_job.due_in(now)} {cron_job.next_run}"
-                )
-                await cron_job.run(now)
+            next_cron = self._get_next(now)
+            if next_cron is None:
+                log.warning("No Cron could be selected for run. Exiting")
+                break
+            for cron_job in self.get_crons():
+                if next_cron.due_in(now) >= cron_job.due_in(now):
+                    log.info(
+                        f"cron available in {cron_job.due_in(now)}: {cron_job.awaitable}"
+                    )
+            await asyncio.sleep(max(1, next_cron.due_in(now)))
+            for cron_job in self.get_crons():
+                now = datetime.now()
+                if cron_job.next_run and now >= cron_job.next_run:
+                    log.info(
+                        f"{cron_job.format}: {cron_job.due_in(now)} {cron_job.next_run}"
+                    )
+                    await cron_job.run(now)
 
-
-def run_cron() -> None:
-    """Run the scheduler. Ensures the execution of discovered cronjobs and updates timinings."""
-    try:
-        return asyncio.run(run_cron_async())
-    except KeyboardInterrupt:
-        with asyncio.Runner() as runner:
-            for cron_job in cron_shutdown_list:
-                runner.run((cron_job.awaitable()))
-        return None
+    def run_cron(self) -> None:
+        """Run the scheduler. Ensures the execution of discovered cronjobs and updates timinings."""
+        try:
+            return asyncio.run(self.run_cron_async())
+        except KeyboardInterrupt:
+            with asyncio.Runner() as runner:
+                for cron_job in self.get_shutdown_crons():
+                    runner.run((cron_job.awaitable()))
+            return None
 
 
 if __name__ == "__main__":
@@ -639,13 +744,13 @@ if __name__ == "__main__":
     # async def cron_job_example() -> None:
     #     """Do nothhing. Used as test Cron function."""
 
-    setattr(CronJob, "_get_current_time", _get_mock_time)
-
+    setattr(_CronJob, "_get_current_time", _get_mock_time)
+    cron = Cron()
     FMT = "* * * * *"
     expected = datetime(year=2024, month=6, day=15, hour=12, minute=14, second=0)
-    cron_next_run = CronJob(_id, FMT).next_run
+    cron_next_run = _CronJob(_id, FMT).next_run
     assert cron_next_run is not None
     assert cron_next_run == expected
 
     log.info(f"{FMT} = {cron_next_run=} == {expected=}")
-    run_cron()
+    cron.run_cron()

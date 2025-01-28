@@ -22,39 +22,13 @@ The algorithm used reflects that of unix cron where:
 """
 
 from pycronie.cronie import (
-    cron,
-    reboot,
-    startup,
-    shutdown,
-    minutely,
-    hourly,
-    midnight,
-    daily,
-    weekly,
-    monthly,
-    annually,
-    yearly,
-    run_cron,
-    run_cron_async,
+    Cron,
     CronJobInvalid,
-    CronJob,
+    CronScheduler,
 )
 
 __all__ = [
-    "cron",
-    "reboot",
-    "startup",
-    "shutdown",
-    "minutely",
-    "hourly",
-    "midnight",
-    "daily",
-    "weekly",
-    "monthly",
-    "annually",
-    "yearly",
-    "run_cron",
-    "run_cron_async",
     "CronJobInvalid",
-    "CronJob",
+    "Cron",
+    "CronScheduler",
 ]
