@@ -26,10 +26,14 @@ from pycronie.cronie import (
     Cron,
     CronJobInvalid,
     CronScheduler,
+    CronCache,
+    VoidInputArg,
 )
 
 __all__ = [
     "CronJobInvalid",
     "Cron",
     "CronScheduler",
+    "CronCache",
+    "VoidInputArg",
 ]
