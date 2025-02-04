@@ -3,7 +3,6 @@ import sys
 sys.path.insert(0, os.path.abspath('..'))
 
 # pylint: disable-all
-# type: ignore
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -28,7 +27,6 @@ extensions = [
 
 
 templates_path = ["_templates"]
-exclude_patterns = []
 add_module_names = False
 autodoc_member_order = "bysource"
 

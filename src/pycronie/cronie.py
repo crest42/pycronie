@@ -1,14 +1,14 @@
 """Small decorator based implementation of Unix beloved crontab."""
 
-from typing import Callable, Any, Coroutine, List, Optional
+from typing import Callable, Any, Coroutine, Optional, Union, overload, TypeVar
 
 import asyncio
 import logging
 import inspect
-from datetime import date, datetime, timedelta
 import functools
 
-AwaitableType = Callable[[], Coroutine[Any, Any, None]]
+from datetime import date, datetime, timedelta
+
 DEFAULT_EVENTLOOP_DELAY = 60
 HOURS_PER_DAY = 24
 MINUTES_PER_HOUR = 60
@@ -28,6 +28,56 @@ ANY_MONTH = range(1, MONTHS_PER_YEAR)
 ANY_WEEKDAY = range(0, 7)
 log = logging.getLogger(__name__)
 WEEKDAY_MAP = {"sun": 0, "mon": 1, "tue": 2, "wed": 3, "thu": 4, "fri": 5, "sat": 6}
+
+
+R = Coroutine[Any, Any, None]
+T1 = TypeVar("T1", bound="_CronInputArg")
+T2 = TypeVar("T2", bound="_CronInputArg")
+Func0 = Callable[[], R]
+Func1 = Callable[[T1], R]
+Func2 = Callable[[T1, T1], R]
+AcceptableFunc = Union[Func0, Func1, Func2]  # type: ignore
+CronAwaitableParsed = Callable[[], R]
+
+
+class _CronInputArg:
+    """Parent class for Cron Input args used for type cronstrains."""
+
+
+class VoidInputArg(_CronInputArg):
+    """Noop input arg used for testing multiple input arguments for future usage."""
+
+
+class CronStoreBucket(_CronInputArg):
+    """Wrapper for sotring data in between cron job executions.
+
+    Can be supplied as an annotated argument to @Cron.cron decorated functions.
+
+    Initializes a storage bucket and allows argument access via attribute access.
+    """
+
+    def __init__(self) -> None:
+        """Storage Wrapper for cron functions.
+
+        Allows attribute like access on stroage to store values in between exeuctions
+        """
+        object.__setattr__(self, "storage_dict", {})
+        self.storage_dict: dict[str, Any] = {}
+
+    def __getattr__(self, name: str) -> Any:
+        """Overwrite getattr to allow attribute like access on storage wrapper. e. g. 'storage.value'."""
+        if name in self.storage_dict:
+            return self.storage_dict[name]
+        return None
+
+    def __delattr__(self, name: str) -> None:
+        """Overwrite delattr to allow attribute like access on storage wrapper. e. g. 'del storage.value'."""
+        if name in self.storage_dict:
+            del self.storage_dict[name]
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Overwrite setattr to allow attribute like access on storage wrapper. e. g. 'storage.value = X'."""
+        self.storage_dict[name] = value
 
 
 class CronJobInvalid(Exception):
@@ -55,6 +105,14 @@ def _cast_cron_int(maybe_int: str) -> int:
 
 def _is_leap_year(year: int) -> int:
     return (year % 4 == 0) and (year % 100 != 0 or year % 400 == 0)
+
+
+def _get_month(day: int, month: int) -> int:
+    if month == 2 and day > 29:
+        return month + 1
+    if month % 2 == 0 and day == 31:
+        return month + 1
+    return month
 
 
 def _get_next_leap_year(year: int) -> int:
@@ -256,7 +314,7 @@ class _CronStringParser:
 class _CronJob:
     """Main Wrapper for a single Cronjob. Includes the target function, cron string parsing, and timing information."""
 
-    def __init__(self, awaitable: AwaitableType, schedule: str) -> None:
+    def __init__(self, awaitable: AcceptableFunc, schedule: str) -> None:
         """Create a new _CronJob.
 
         Creates a cron job and initiallize next scheduling with _CronJob._get_current_time as reference
@@ -265,7 +323,9 @@ class _CronJob:
         if not isinstance(schedule, str):
             raise InvalidCronString("Cron format string expected to be a string")
         self.format = schedule
-        self.awaitable = awaitable
+        self.storage = CronStoreBucket()
+        self.parameters = inspect.signature(awaitable).parameters
+        self._awaitable = self._get_awaitable(awaitable)
         self._next_run: Optional[datetime] = None
         if schedule not in ["STARTUP", "SHUTDOWN"]:
             try:
@@ -273,6 +333,34 @@ class _CronJob:
             except InvalidCronString as ex:
                 raise CronJobInvalid() from ex
             self._schedule(_CronJob._get_current_time())
+
+    def __repr__(self) -> str:
+        return f"CronJob({self.format}, {self._awaitable.__name__})"
+
+    def _get_args(self) -> tuple[_CronInputArg, ...]:
+        args: list[_CronInputArg] = []
+        for _, param in self.parameters.items():
+            if issubclass(param.annotation, CronStoreBucket):
+                args.append(self.storage)
+            elif issubclass(param.annotation, VoidInputArg):
+                args.append(VoidInputArg())
+            else:
+                raise RuntimeError(
+                    f"Could not infer type of cron jon parameter: {param=}"
+                )
+        return tuple(args)
+
+    def _get_awaitable(self, awaitable: AcceptableFunc) -> CronAwaitableParsed:
+        @functools.wraps(awaitable)
+        def func() -> R:
+            return awaitable(*self._get_args())
+
+        return func
+
+    @property
+    def awaitable(self) -> R:
+        """Return an awaitable object for this cron with all input parameters."""
+        return self._awaitable()
 
     @property
     def months(self) -> list[int]:
@@ -320,6 +408,7 @@ class _CronJob:
         return current_time
 
     def _update_month(self, next_run: datetime) -> datetime:
+        delta = None
         index = _get_next_best_fit(self.months, next_run.month)
         if self.months[index] == next_run.month:
             log.debug(f"Cron month {next_run.month} is in range. Continue")
@@ -335,9 +424,18 @@ class _CronJob:
                 date(year, self.months[0], self.days[0]), next_run.date()
             )
         else:  # Same year TODO: Test case for invalid day/month comb. e. g. 31st of April
-            delta = _detla_between_dates_in_minutes(
-                date(next_run.year, self.months[index], self.days[0]), next_run.date()
-            )
+            for month in self.months[index:]:
+                try:
+                    delta = _detla_between_dates_in_minutes(
+                        date(next_run.year, month, self.days[0]), next_run.date()
+                    )
+                except ValueError:
+                    pass
+            # delta = _detla_between_dates_in_minutes(
+            #     date(next_run.year, self.months[index], self.days[0]), next_run.date()
+            # )
+        if delta is None:
+            raise ValueError("Could not infer a valid month")
         return (next_run + timedelta(minutes=delta)).replace(
             hour=self.hours[0], minute=self.minutes[0]
         )
@@ -352,12 +450,15 @@ class _CronJob:
                 date(next_run.year, next_run.month + 1, self.days[0]), next_run.date()
             )
         else:
-            if next_run.month == 2 and self.days[index] > 28:
+            if next_run.month == 2 and self.days[index] == 29:
                 year = _get_next_leap_year(next_run.year)
             else:
                 year = next_run.year
             delta = _detla_between_dates_in_minutes(
-                date(year, next_run.month, self.days[index]), next_run.date()
+                date(
+                    year, _get_month(self.days[index], next_run.month), self.days[index]
+                ),
+                next_run.date(),
             )
         return (next_run + timedelta(minutes=delta)).replace(
             hour=self.hours[0], minute=self.minutes[0]
@@ -450,7 +551,6 @@ class _CronJob:
         )
         next_run = self._update_time(next_run)
         next_run = self._update_date(next_run)
-
         if next_run == current_time:
             next_run = next_run + timedelta(minutes=0)
         assert next_run >= current_time
@@ -466,7 +566,7 @@ class _CronJob:
         Args:
             now (datetime): Time reference to calculate next scheduling.
         """
-        asyncio.create_task(self.awaitable())
+        await self.awaitable
         self._schedule(now)
 
     def due_in(self, now: datetime) -> int:
@@ -480,7 +580,7 @@ class _CronJob:
         """
         if self.next_run is None:
             raise CronJobNotPeriodic(
-                f"Cron {self} is not a periodic job. Likely to be a STARTUP or SHUTDOWN implementation"
+                f"Cron {self} could not be scheduled. Likely to be a STARTUP or SHUTDOWN implementation"
             )
         due_in = (self.next_run - now).total_seconds()
         return (
@@ -496,9 +596,9 @@ class CronScheduler:
 
     def __init__(self) -> None:
         """Create a new CronScheduler object used as a collection of cron jobs."""
-        self.cron_startup_list: List[_CronJob] = []
-        self.cron_list: List[_CronJob] = []
-        self.cron_shutdown_list: List[_CronJob] = []
+        self.cron_startup_list: list[_CronJob] = []
+        self.cron_list: list[_CronJob] = []
+        self.cron_shutdown_list: list[_CronJob] = []
 
     def _get_next(self, now: datetime) -> Optional["_CronJob"]:
         """Return next cron job that is due for execution."""
@@ -510,29 +610,28 @@ class CronScheduler:
                 next_cron = cron_job
         return next_cron
 
-    def add_cron(self, schedule: str, func: AwaitableType) -> None:
+    def add_cron(self, schedule: str, func: AcceptableFunc) -> None:
         r"""Add a function to be executed according to schedule.
 
         Args:
             schedule (str): Cron string schedule (e. g. '\* \* \* \* \*')\n
-            func (AwaitableType): Awaitable that should be run accroding to schedule
+            func (CronAwaitable): Awaitable that should be run accroding to schedule
 
         Raises:
             InvalidCronFunction: Raised when the cron job could not be added due to a invalid cron function signature
         """
-        cron_job = _CronJob(func, schedule)
-        if inspect.signature(func).parameters:
-            raise InvalidCronFunction(
-                f"CronJobs function with parameters are not supported rn: '{inspect.signature(func).parameters}'"
-            )
-        self.cron_list.append(cron_job)
+        try:
+            cron_job = _CronJob(func, schedule)
+            self.cron_list.append(cron_job)
+        except ValueError as ex:
+            log.error(f"Could not create cron for {func} on schedule {schedule}: {ex}")
 
-    def add_startup_cron(self, func: AwaitableType) -> None:
+    def add_startup_cron(self, func: AcceptableFunc) -> None:
         """Add a cron that is executed only on startup of the application."""
         cron_job = _CronJob(func, "STARTUP")
         self.cron_startup_list.append(cron_job)
 
-    def add_shutdown_cron(self, func: AwaitableType) -> None:
+    def add_shutdown_cron(self, func: AcceptableFunc) -> None:
         """Add a cron that is executed only on shutdown of the application."""
         cron_job = _CronJob(func, "SHUTDOWN")
         self.cron_startup_list.append(cron_job)
@@ -547,7 +646,7 @@ class Cron:
 
     def __init__(self) -> None:
         """Create a new cron runner instance."""
-        self.schedulers: List[CronScheduler] = [CronScheduler()]
+        self.schedulers: list[CronScheduler] = [CronScheduler()]
 
     def _get_next(self, now: datetime) -> Optional["_CronJob"]:
         """Return next cron job that is due for execution."""
@@ -579,90 +678,162 @@ class Cron:
         """
         self.schedulers.append(scheduler)
 
-    def cron(self, schedule: str) -> Callable[[AwaitableType], AwaitableType]:
+    # def cron(self, schedule: str) -> Callable[[AcceptableFunc], AcceptableFunc]:
+    def cron(self, schedule: str) -> Callable[
+        [Union[Callable[[], R], Callable[[T1], R], Callable[[T1, T2], R]]],
+        Union[Callable[[], R], Callable[[T1], R], Callable[[T1, T2], R]],
+    ]:
         """Decorate a function function to annotate a cron function.
 
         Args:
             schedule (str): A valid cron format string (e. g. '0 0 1 1 0-6')
 
         Returns:
-            Callable[[AwaitableType], AwaitableType]: The function that has been annotated
+            Callable[[CronAwaitable], CronAwaitable]: The function that has been annotated
         """
 
-        def decorator(func: AwaitableType) -> AwaitableType:
+        def decorator(func: AcceptableFunc) -> AcceptableFunc:
             try:
                 self.scheduler.add_cron(schedule, func)
-
-                @functools.wraps(func)
-                def inner() -> Coroutine[Any, Any, None]:
-                    return func()
-
-                return inner
-            except CronJobInvalid:
+                return func
+            except CronJobInvalid as ex:
                 log.error(
-                    f"Could not setup cronjob for {func.__name__} on schedule '{schedule}'"
+                    f"Could not setup cronjob for {func} on schedule '{schedule}'"
                 )
-            return func
+                raise ex
 
         return decorator
 
-    def reboot(self, func: AwaitableType) -> AwaitableType:
+    @overload
+    def minutely(self, func: Callable[[], R]) -> Callable[[], R]: ...
+    @overload
+    def minutely(self, func: Callable[[T1], R]) -> Callable[[T1], R]: ...
+    @overload
+    def minutely(self, func: Callable[[T1, T2], R]) -> Callable[[T1, T2], R]: ...
+
+    def minutely(self, func: Any) -> Any:
+        """Decorate a function to schedule job once every minute."""
+        return self.cron(CRON_STRING_TEMPLATE_MINUTELY)(func)
+
+    @overload
+    def hourly(self, func: Callable[[], R]) -> Callable[[], R]: ...
+    @overload
+    def hourly(self, func: Callable[[T1], R]) -> Callable[[T1], R]: ...
+    @overload
+    def hourly(self, func: Callable[[T1, T2], R]) -> Callable[[T1, T2], R]: ...
+
+    def hourly(self, func: Any) -> Any:
+        """Decorate a function to schedule job once every hour."""
+        return self.cron(CRON_STRING_TEMPLATE_HOURLY)(func)
+
+    @overload
+    def midnight(self, func: Callable[[], R]) -> Callable[[], R]: ...
+    @overload
+    def midnight(self, func: Callable[[T1], R]) -> Callable[[T1], R]: ...
+    @overload
+    def midnight(self, func: Callable[[T1, T2], R]) -> Callable[[T1, T2], R]: ...
+
+    def midnight(self, func: Any) -> Any:
+        """Decorate a function to schedule job once a day at midnight."""
+        return self.cron(CRON_STRING_TEMPLATE_DAILY)(func)
+
+    @overload
+    def daily(self, func: Callable[[], R]) -> Callable[[], R]: ...
+    @overload
+    def daily(self, func: Callable[[T1], R]) -> Callable[[T1], R]: ...
+    @overload
+    def daily(self, func: Callable[[T1, T2], R]) -> Callable[[T1, T2], R]: ...
+
+    def daily(self, func: Any) -> Any:
+        """Decorate a function to schedule job once a day at midnight."""
+        return self.cron(CRON_STRING_TEMPLATE_DAILY)(func)
+
+    @overload
+    def weekly(self, func: Callable[[], R]) -> Callable[[], R]: ...
+    @overload
+    def weekly(self, func: Callable[[T1], R]) -> Callable[[T1], R]: ...
+    @overload
+    def weekly(self, func: Callable[[T1, T2], R]) -> Callable[[T1, T2], R]: ...
+
+    def weekly(self, func: Any) -> Any:
+        """Decorate a function to schedule job once a week at Sunday midnight."""
+        return self.cron(CRON_STRING_TEMPLATE_WEEKLY)(func)
+
+    @overload
+    def monthly(self, func: Callable[[], R]) -> Callable[[], R]: ...
+    @overload
+    def monthly(self, func: Callable[[T1], R]) -> Callable[[T1], R]: ...
+    @overload
+    def monthly(self, func: Callable[[T1, T2], R]) -> Callable[[T1, T2], R]: ...
+
+    def monthly(self, func: Any) -> Any:
+        """Decorate a function to schedule job once a month at the 1st on midnight."""
+        return self.cron(CRON_STRING_TEMPLATE_MONTHLY)(func)
+
+    @overload
+    def annually(self, func: Callable[[], R]) -> Callable[[], R]: ...
+    @overload
+    def annually(self, func: Callable[[T1], R]) -> Callable[[T1], R]: ...
+    @overload
+    def annually(self, func: Callable[[T1, T2], R]) -> Callable[[T1, T2], R]: ...
+
+    def annually(self, func: Any) -> Any:
+        """Decorate a function to schedule job once a year on the 1st of Janurary midnight."""
+        return self.cron(CRON_STRING_TEMPLATE_ANNUALLY)(func)
+
+    @overload
+    def yearly(self, func: Callable[[], R]) -> Callable[[], R]: ...
+    @overload
+    def yearly(self, func: Callable[[T1], R]) -> Callable[[T1], R]: ...
+    @overload
+    def yearly(self, func: Callable[[T1, T2], R]) -> Callable[[T1, T2], R]: ...
+
+    def yearly(self, func: Any) -> Any:
+        """Decorate a function to schedule job once a year on the 1st of Janurary midnight."""
+        return self.cron(CRON_STRING_TEMPLATE_ANNUALLY)(func)
+
+    @overload
+    def reboot(self, func: Callable[[], R]) -> Callable[[], R]: ...
+    @overload
+    def reboot(self, func: Callable[[T1], R]) -> Callable[[T1], R]: ...
+    @overload
+    def reboot(self, func: Callable[[T1, T2], R]) -> Callable[[T1, T2], R]: ...
+
+    def reboot(self, func: Any) -> Any:
         """Decorate a function to schedule job once on startup."""
         try:
             self.scheduler.add_startup_cron(func)
         except CronJobInvalid:
-            log.error(
-                f"Could not setup cronjob for {func.__name__} on '@startup' schedule"
-            )
+            log.error(f"Could not setup cronjob for {func} on '@startup' schedule")
         return func
 
-    def startup(self, func: AwaitableType) -> AwaitableType:
+    @overload
+    def startup(self, func: Callable[[], R]) -> Callable[[], R]: ...
+    @overload
+    def startup(self, func: Callable[[T1], R]) -> Callable[[T1], R]: ...
+    @overload
+    def startup(self, func: Callable[[T1, T2], R]) -> Callable[[T1, T2], R]: ...
+
+    def startup(self, func: Any) -> Any:
         """Decorate a function to schedule job once on startup."""
         return self.reboot(func)
 
-    def shutdown(self, func: AwaitableType) -> AwaitableType:
+    @overload
+    def shutdown(self, func: Callable[[], R]) -> Callable[[], R]: ...
+    @overload
+    def shutdown(self, func: Callable[[T1], R]) -> Callable[[T1], R]: ...
+    @overload
+    def shutdown(self, func: Callable[[T1, T2], R]) -> Callable[[T1, T2], R]: ...
+
+    def shutdown(self, func: Any) -> Any:
         """Decorate a function to schedule job once on shutdown."""
         try:
             self.scheduler.add_shutdown_cron(func)
         except CronJobInvalid:
-            log.error(
-                f"Could not setup cronjob for {func.__name__} on '@shutdown' schedule"
-            )
+            log.error(f"Could not setup cronjob for {func} on '@shutdown' schedule")
         return func
 
-    def minutely(self, func: AwaitableType) -> AwaitableType:
-        """Decorate a function to schedule job every minute."""
-        return self.cron(CRON_STRING_TEMPLATE_MINUTELY)(func)
-
-    def hourly(self, func: AwaitableType) -> AwaitableType:
-        """Decorate a function to schedule job once every hour."""
-        return self.cron(CRON_STRING_TEMPLATE_HOURLY)(func)
-
-    def midnight(self, func: AwaitableType) -> AwaitableType:
-        """Decorate a function to schedule job once a day at midnight."""
-        return self.cron(CRON_STRING_TEMPLATE_DAILY)(func)
-
-    def daily(self, func: AwaitableType) -> AwaitableType:
-        """Decorate a function to schedule job once a day at midnight."""
-        return self.cron(CRON_STRING_TEMPLATE_DAILY)(func)
-
-    def weekly(self, func: AwaitableType) -> AwaitableType:
-        """Decorate a function to schedule job once a week at Sunday midnight."""
-        return self.cron(CRON_STRING_TEMPLATE_WEEKLY)(func)
-
-    def monthly(self, func: AwaitableType) -> AwaitableType:
-        """Decorate a function to schedule job once a month at the 1st on midnight."""
-        return self.cron(CRON_STRING_TEMPLATE_MONTHLY)(func)
-
-    def annually(self, func: AwaitableType) -> AwaitableType:
-        """Decorate a function to schedule job once a year on the 1st of Janurary midnight."""
-        return self.cron(CRON_STRING_TEMPLATE_ANNUALLY)(func)
-
-    def yearly(self, func: AwaitableType) -> AwaitableType:
-        """Decorate a function to schedule job once a year on the 1st of Janurary midnight."""
-        return self.cron(CRON_STRING_TEMPLATE_ANNUALLY)(func)
-
-    def get_startup_crons(self) -> List[_CronJob]:
+    def get_startup_crons(self) -> list[_CronJob]:
         """Return a list of all startup cronjobs included in all schedulers.
 
         Returns:
@@ -674,7 +845,7 @@ class Cron:
             for cron_job in scheduler.cron_startup_list
         ]
 
-    def get_shutdown_crons(self) -> List[_CronJob]:
+    def get_shutdown_crons(self) -> list[_CronJob]:
         """Return a list of all shutdown cronjobs included in all schedulers.
 
         Returns:
@@ -686,7 +857,7 @@ class Cron:
             for cron_job in scheduler.cron_shutdown_list
         ]
 
-    def get_crons(self) -> List[_CronJob]:
+    def get_crons(self) -> list[_CronJob]:
         """Return a list of all periodic cronjobs included in all schedulers.
 
         Returns:
@@ -704,7 +875,10 @@ class Cron:
         Ensures the execution of discovered cronjobs and updates timinings.
         """
         for cron_job in self.get_startup_crons():
-            await cron_job.awaitable()
+            try:
+                await cron_job.awaitable
+            except RuntimeError as ex:
+                log.error(f"Could not run cron {cron_job}. {ex}")
         while True:
             now = datetime.now()
             next_cron = self._get_next(now)
@@ -713,9 +887,7 @@ class Cron:
                 break
             for cron_job in self.get_crons():
                 if next_cron.due_in(now) >= cron_job.due_in(now):
-                    log.info(
-                        f"cron available in {cron_job.due_in(now)}: {cron_job.awaitable}"
-                    )
+                    log.info(f"cron available in {cron_job.due_in(now)}: {cron_job}")
             await asyncio.sleep(max(1, next_cron.due_in(now)))
             for cron_job in self.get_crons():
                 now = datetime.now()
@@ -732,7 +904,7 @@ class Cron:
         except KeyboardInterrupt:
             with asyncio.Runner() as runner:
                 for cron_job in self.get_shutdown_crons():
-                    runner.run((cron_job.awaitable()))
+                    runner.run(cron_job.awaitable)
             return None
 
 
