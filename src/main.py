@@ -2,7 +2,7 @@
 
 # pylint: disable=missing-function-docstring,missing-module-docstring
 import logging
-from pycronie import Cron, CronScheduler, CronStoreBucket, VoidInputArg
+from pycronie import Cron, CronScheduler, CronCache, VoidInputArg
 
 log = logging.getLogger(__name__)
 FORMAT = "%(asctime)-15s|%(levelname)s|%(name)s: %(message)s"
@@ -173,35 +173,33 @@ async def invalid_day_of_month() -> None:
 
 
 @cron.cron("* * * * *")
-async def all_set_with_arg(storage_bucket: CronStoreBucket) -> None:
-    """Run minutely with storage."""
-    if not storage_bucket.foo:
-        storage_bucket.foo = 1
+async def all_set_with_arg(cache: CronCache) -> None:
+    """Run minutely with cache."""
+    if not cache.foo:
+        cache.foo = 1
     else:
-        storage_bucket.foo += 1
-    log.info(f"all_set_with_arg: {storage_bucket.foo}")
+        cache.foo += 1
+    log.info(f"all_set_with_arg: {cache.foo}")
 
 
 @cron.cron("* * * * *")
-async def all_set_with_arg2(
-    storage_bucket: CronStoreBucket, void: VoidInputArg
-) -> None:
-    """Run minutely with storage and void arg."""
-    if not storage_bucket.foo:
-        storage_bucket.foo = 1
+async def all_set_with_arg2(cache: CronCache, void: VoidInputArg) -> None:
+    """Run minutely with cache and void arg."""
+    if not cache.foo:
+        cache.foo = 1
     else:
-        storage_bucket.foo += 1
-    log.info(f"all_set_with_arg2: {storage_bucket.foo} {void}")
+        cache.foo += 1
+    log.info(f"all_set_with_arg2: {cache.foo} {void}")
 
 
 @cron.minutely
-async def all_set_with_arg_minutely(storage_bucket: CronStoreBucket) -> None:
-    """Run minutely with storage."""
-    if not storage_bucket.foo:
-        storage_bucket.foo = 1
+async def all_set_with_arg_minutely(cache: CronCache) -> None:
+    """Run minutely with cache."""
+    if not cache.foo:
+        cache.foo = 1
     else:
-        storage_bucket.foo += 1
-    log.info(f"all_set_with_arg_minutely: {storage_bucket.foo}")
+        cache.foo += 1
+    log.info(f"all_set_with_arg_minutely: {cache.foo}")
 
 
 class TestClass:
@@ -222,33 +220,33 @@ class TestClass:
 
 
 @cron.startup
-async def valid_arg(storage_bucket: CronStoreBucket) -> None:
+async def valid_arg(cache: CronCache) -> None:
     """Run every minute."""
-    if storage_bucket.run is None:
-        storage_bucket.run = 1
+    if cache.run is None:
+        cache.run = 1
     else:
-        storage_bucket.run += 1
-    log.info(f"{valid_arg}: {storage_bucket.run}")
+        cache.run += 1
+    log.info(f"{valid_arg}: {cache.run}")
 
 
 @cron.startup
-async def valid_arg2(storage_bucket: CronStoreBucket, void: VoidInputArg) -> None:
+async def valid_arg2(cache: CronCache, void: VoidInputArg) -> None:
     """Run every minute."""
-    if storage_bucket.run is None:
-        storage_bucket.run = 1
+    if cache.run is None:
+        cache.run = 1
     else:
-        storage_bucket.run += 1
-    log.info(f"{valid_arg}: {storage_bucket.run} {void}")
+        cache.run += 1
+    log.info(f"{valid_arg}: {cache.run} {void}")
 
 
 @cron.startup
-async def valid_arg3(void: VoidInputArg, storage_bucket: CronStoreBucket) -> None:
+async def valid_arg3(void: VoidInputArg, cache: CronCache) -> None:
     """Run every minute."""
-    if storage_bucket.run is None:
-        storage_bucket.run = 1
+    if cache.run is None:
+        cache.run = 1
     else:
-        storage_bucket.run += 1
-    log.info(f"{valid_arg}: {storage_bucket.run} {void}")
+        cache.run += 1
+    log.info(f"{valid_arg}: {cache.run} {void}")
 
 
 if __name__ == "__main__":

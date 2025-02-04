@@ -48,7 +48,7 @@ class VoidInputArg(_CronInputArg):
     """Noop input arg used for testing multiple input arguments for future usage."""
 
 
-class CronStoreBucket(_CronInputArg):
+class CronCache(_CronInputArg):
     """Wrapper for sotring data in between cron job executions.
 
     Can be supplied as an annotated argument to @Cron.cron decorated functions.
@@ -61,23 +61,23 @@ class CronStoreBucket(_CronInputArg):
 
         Allows attribute like access on stroage to store values in between exeuctions
         """
-        object.__setattr__(self, "storage_dict", {})
-        self.storage_dict: dict[str, Any] = {}
+        object.__setattr__(self, "cache_dict", {})
+        self.cache_dict: dict[str, Any] = {}
 
     def __getattr__(self, name: str) -> Any:
         """Overwrite getattr to allow attribute like access on storage wrapper. e. g. 'storage.value'."""
-        if name in self.storage_dict:
-            return self.storage_dict[name]
+        if name in self.cache_dict:
+            return self.cache_dict[name]
         return None
 
     def __delattr__(self, name: str) -> None:
         """Overwrite delattr to allow attribute like access on storage wrapper. e. g. 'del storage.value'."""
-        if name in self.storage_dict:
-            del self.storage_dict[name]
+        if name in self.cache_dict:
+            del self.cache_dict[name]
 
     def __setattr__(self, name: str, value: Any) -> None:
         """Overwrite setattr to allow attribute like access on storage wrapper. e. g. 'storage.value = X'."""
-        self.storage_dict[name] = value
+        self.cache_dict[name] = value
 
 
 class CronJobInvalid(Exception):
@@ -323,7 +323,7 @@ class _CronJob:
         if not isinstance(schedule, str):
             raise InvalidCronString("Cron format string expected to be a string")
         self.format = schedule
-        self.storage = CronStoreBucket()
+        self.cache = CronCache()
         self.parameters = inspect.signature(awaitable).parameters
         self._awaitable = self._get_awaitable(awaitable)
         self._next_run: Optional[datetime] = None
@@ -340,8 +340,8 @@ class _CronJob:
     def _get_args(self) -> tuple[_CronInputArg, ...]:
         args: list[_CronInputArg] = []
         for _, param in self.parameters.items():
-            if issubclass(param.annotation, CronStoreBucket):
-                args.append(self.storage)
+            if issubclass(param.annotation, CronCache):
+                args.append(self.cache)
             elif issubclass(param.annotation, VoidInputArg):
                 args.append(VoidInputArg())
             else:

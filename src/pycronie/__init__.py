@@ -26,7 +26,7 @@ from pycronie.cronie import (
     Cron,
     CronJobInvalid,
     CronScheduler,
-    CronStoreBucket,
+    CronCache,
     VoidInputArg,
 )
 
@@ -34,6 +34,6 @@ __all__ = [
     "CronJobInvalid",
     "Cron",
     "CronScheduler",
-    "CronStoreBucket",
+    "CronCache",
     "VoidInputArg",
 ]
